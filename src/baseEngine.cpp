@@ -55,7 +55,7 @@ void baseEngine::caffeToGIEModel(const std::string &deployFile,                /
             file.read(trtModelStream_.data(), size);
             file.close();
         }
-        std::cout << "size" << size;
+        std::cout << "size" << size << std::endl;
         IRuntime* runtime = createInferRuntime(gLogger);
         assert(runtime != nullptr);
         ICudaEngine *engine = runtime->deserializeCudaEngine(trtModelStream_.data(), size, nullptr);

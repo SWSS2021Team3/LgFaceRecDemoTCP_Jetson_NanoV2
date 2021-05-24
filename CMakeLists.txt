@@ -1,12 +1,11 @@
 cmake_minimum_required(VERSION 3.8 FATAL_ERROR)
-set(PROJECT_NAME mtcnn_facenet_cpp_tensorRT)
+set(PROJECT_NAME LgFaceRecDemoTCP_Jetson_NanoV2)
 project(${PROJECT_NAME})# LANGUAGES CXX CUDA)
 
 set (CMAKE_CXX_STANDARD 11)
 
 # OpenCV
 find_package(OpenCV REQUIRED)
-
 find_package(CUDA)
 message("-- CUDA version: ${CUDA_VERSION}")
 
@@ -28,6 +27,8 @@ if(CUDA_VERSION_MAJOR GREATER 9)
 	)
 
 endif()
+
+set(CMAKE_CXX_FLAGS  "-Wno-deprecated-declarations")
 
 # tensorRT
 message("CUDA_TOOLKIT_ROOT_DIR = ${CUDA_TOOLKIT_ROOT_DIR}")
@@ -76,4 +77,4 @@ target_link_libraries(${PROJECT_NAME}
   trt_l2norm_helper
   ${TENSORRT_LIBRARY}
 )
-target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBS})
+target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBS}) 
