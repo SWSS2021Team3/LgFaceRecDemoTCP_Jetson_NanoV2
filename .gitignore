@@ -15,3 +15,5 @@ imgs/*
 !mtCNNModels/README.md
 facenetModels/*
 !facenetModels/README.md
+
+*.engine
