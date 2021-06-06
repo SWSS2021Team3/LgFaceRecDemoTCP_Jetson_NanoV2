@@ -16,7 +16,15 @@
         {
             "label": "Run",
             "type": "shell",
-            "command": "cd build && ./LgFaceRecDemoTCP_Jetson_NanoV2 5000",
+            
+            "command": "cd build && ./LgFaceRecDemoTCP_Jetson_NanoV2 5007 ../friends640x480.mp4",
+            "problemMatcher": []
+        },
+        {
+            "label": "Run with camera",
+            "type": "shell",
+            
+            "command": "cd build && ./LgFaceRecDemoTCP_Jetson_NanoV2 5007",
             "problemMatcher": []
         }
     ]
