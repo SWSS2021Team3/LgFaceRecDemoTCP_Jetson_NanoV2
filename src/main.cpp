@@ -120,114 +120,125 @@ int main(int argc, char *argv[])
   }
   outputBbox.clear();
 
-  if ((TcpListenPort = OpenTcpListenPort(atoi(argv[1]))) == NULL) // Open TCP Network port
+  bool stop = false;
+
+  while (!stop)
   {
-    printf("OpenTcpListenPortFailed\n");
-    return (-1);
-  }
-
-  clilen = sizeof(cli_addr);
-
-  printf("Listening for connections\n");
-
-  if ((TcpConnectedPort = AcceptTcpConnection(TcpListenPort, &cli_addr, &clilen)) == NULL)
-  {
-    printf("AcceptTcpConnection Failed\n");
-    return (-1);
-  }
-
-  printf("Accepted connection Request\n");
-
-  cv::cuda::GpuMat src_gpu, dst_gpu;
-  cv::Mat dst_img;
-  // loop over frames with inference
-  auto globalTimeStart = chrono::steady_clock::now();
-
-  while (true)
-  {
-    videoStreamer->getFrame(frame);
-    if (frame.empty())
+    if ((TcpListenPort = OpenTcpListenPort(atoi(argv[1]))) == NULL) // Open TCP Network port
     {
-      std::cout << "Empty frame! Exiting...\n Try restarting nvargus-daemon by "
-                   "doing: sudo systemctl restart nvargus-daemon"
-                << std::endl;
-      break;
-    }
-    // Create a destination to paint the source into.
-    dst_img.create(frame.size(), frame.type());
-
-    // Push the images into the GPU
-    if (UseCamera)
-    {
-      src_gpu.upload(frame);
-      cv::cuda::rotate(src_gpu, dst_gpu, src_gpu.size(), 180, src_gpu.size().width, src_gpu.size().height);
-      dst_gpu.download(frame);
+      printf("OpenTcpListenPortFailed\n");
+      return (-1);
     }
 
-    auto startMTCNN = chrono::steady_clock::now();
-    outputBbox = mtCNN.findFace(frame);
-    auto endMTCNN = chrono::steady_clock::now();
-    auto startForward = chrono::steady_clock::now();
-    faceNet.forward(frame, outputBbox);
-    auto endForward = chrono::steady_clock::now();
-    auto startFeatM = chrono::steady_clock::now();
-    faceNet.featureMatching(frame);
-    auto endFeatM = chrono::steady_clock::now();
-    faceNet.resetVariables();
+    clilen = sizeof(cli_addr);
 
-    if (TcpSendImageAsJpeg(TcpConnectedPort, frame) < 0)
-      break;
-    //cv::imshow("VideoSource", frame);
-    nbFrames++;
-    outputBbox.clear();
-    frame.release();
-    if (kbhit())
+    printf("Listening for connections\n");
+
+    if ((TcpConnectedPort = AcceptTcpConnection(TcpListenPort, &cli_addr, &clilen)) == NULL)
     {
-      // Stores the pressed key in ch
-      char keyboard = getch();
+      printf("AcceptTcpConnection Failed\n");
+      return (-1);
+    }
 
-      if (keyboard == 'q')
-        break;
-      else if (keyboard == 'n')
+    printf("Accepted connection Request\n");
+
+    cv::cuda::GpuMat src_gpu, dst_gpu;
+    cv::Mat dst_img;
+    // loop over frames with inference
+    auto globalTimeStart = chrono::steady_clock::now();
+
+    while (true)
+    {
+      videoStreamer->getFrame(frame);
+      if (frame.empty())
       {
+        std::cout << "Empty frame! Exiting...\n Try restarting nvargus-daemon by "
+                     "doing: sudo systemctl restart nvargus-daemon"
+                  << std::endl;
+        break;
+      }
+      // Create a destination to paint the source into.
+      dst_img.create(frame.size(), frame.type());
 
-        auto dTimeStart = chrono::steady_clock::now();
-        videoStreamer->getFrame(frame);
-        // Create a destination to paint the source into.
-        dst_img.create(frame.size(), frame.type());
-
-        // Push the images into the GPU
+      // Push the images into the GPU
+      if (UseCamera)
+      {
         src_gpu.upload(frame);
         cv::cuda::rotate(src_gpu, dst_gpu, src_gpu.size(), 180, src_gpu.size().width, src_gpu.size().height);
         dst_gpu.download(frame);
-
-        outputBbox = mtCNN.findFace(frame);
-        if (TcpSendImageAsJpeg(TcpConnectedPort, frame) < 0)
-          break;
-        //cv::imshow("VideoSource", frame);
-        faceNet.addNewFace(frame, outputBbox);
-        auto dTimeEnd = chrono::steady_clock::now();
-        globalTimeStart += (dTimeEnd - dTimeStart);
       }
-    }
+
+      auto startMTCNN = chrono::steady_clock::now();
+      outputBbox = mtCNN.findFace(frame);
+      auto endMTCNN = chrono::steady_clock::now();
+      auto startForward = chrono::steady_clock::now();
+      faceNet.forward(frame, outputBbox);
+      auto endForward = chrono::steady_clock::now();
+      auto startFeatM = chrono::steady_clock::now();
+      faceNet.featureMatching(frame);
+      auto endFeatM = chrono::steady_clock::now();
+      faceNet.resetVariables();
+
+      if (TcpSendImageAsJpeg(TcpConnectedPort, frame) < 0)
+        break;
+      //cv::imshow("VideoSource", frame);
+      nbFrames++;
+      outputBbox.clear();
+      frame.release();
+      if (kbhit())
+      {
+        // Stores the pressed key in ch
+        char keyboard = getch();
+
+        if (keyboard == 'q')
+        {
+          stop = true;
+          break;
+        }
+        else if (keyboard == 'n')
+        {
+
+          auto dTimeStart = chrono::steady_clock::now();
+          videoStreamer->getFrame(frame);
+          // Create a destination to paint the source into.
+          dst_img.create(frame.size(), frame.type());
+
+          // Push the images into the GPU
+          src_gpu.upload(frame);
+          cv::cuda::rotate(src_gpu, dst_gpu, src_gpu.size(), 180, src_gpu.size().width, src_gpu.size().height);
+          dst_gpu.download(frame);
+
+          outputBbox = mtCNN.findFace(frame);
+          if (TcpSendImageAsJpeg(TcpConnectedPort, frame) < 0)
+            break;
+          //cv::imshow("VideoSource", frame);
+          faceNet.addNewFace(frame, outputBbox);
+          auto dTimeEnd = chrono::steady_clock::now();
+          globalTimeStart += (dTimeEnd - dTimeStart);
+        }
+      }
 
 #ifdef LOG_TIMES
-    std::cout << "mtCNN took " << std::chrono::duration_cast<chrono::milliseconds>(endMTCNN - startMTCNN).count() << "ms\n";
-    std::cout << "Forward took " << std::chrono::duration_cast<chrono::milliseconds>(endForward - startForward).count() << "ms\n";
-    std::cout << "Feature matching took " << std::chrono::duration_cast<chrono::milliseconds>(endFeatM - startFeatM).count() << "ms\n\n";
+      std::cout << "mtCNN took " << std::chrono::duration_cast<chrono::milliseconds>(endMTCNN - startMTCNN).count() << "ms\n";
+      std::cout << "Forward took " << std::chrono::duration_cast<chrono::milliseconds>(endForward - startForward).count() << "ms\n";
+      std::cout << "Feature matching took " << std::chrono::duration_cast<chrono::milliseconds>(endFeatM - startFeatM).count() << "ms\n\n";
 #endif // LOG_TIMES
+    }
+
+    CloseTcpConnectedPort(&TcpConnectedPort); // Close network port;
+    CloseTcpListenPort(&TcpListenPort);       // Close listen port
+
+    auto globalTimeEnd = chrono::steady_clock::now();
+
+    auto milliseconds = chrono::duration_cast<chrono::milliseconds>(globalTimeEnd - globalTimeStart).count();
+    double seconds = double(milliseconds) / 1000.;
+    double fps = nbFrames / seconds;
+
+    std::cout << "Counted " << nbFrames << " frames in " << double(milliseconds) / 1000. << " seconds!"
+              << " This equals " << fps << "fps.\n";
   }
 
-  auto globalTimeEnd = chrono::steady_clock::now();
-
   videoStreamer->release();
-
-  auto milliseconds = chrono::duration_cast<chrono::milliseconds>(globalTimeEnd - globalTimeStart).count();
-  double seconds = double(milliseconds) / 1000.;
-  double fps = nbFrames / seconds;
-
-  std::cout << "Counted " << nbFrames << " frames in " << double(milliseconds) / 1000. << " seconds!"
-            << " This equals " << fps << "fps.\n";
 
   return 0;
 }
