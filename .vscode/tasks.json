@@ -24,7 +24,7 @@
             "label": "Run with camera",
             "type": "shell",
             
-            "command": "cd build && ./LgFaceRecDemoTCP_Jetson_NanoV2 5007",
+            "command": "cd build && ./LgFaceRecDemoTCP_Jetson_NanoV2 5000",
             "problemMatcher": []
         }
     ]

@@ -147,6 +147,13 @@ int main(int argc, char *argv[])
     // loop over frames with inference
     auto globalTimeStart = chrono::steady_clock::now();
 
+    cv::VideoWriter writer;
+    if (UseCamera)
+    {
+      writer.open("record.avi", cv::VideoWriter::fourcc('M', 'J', 'P', 'G'),
+                  24 /* FPS */, cv::Size(videoFrameWidth, videoFrameHeight), true);
+    }
+
     while (true)
     {
       videoStreamer->getFrame(frame);
@@ -166,6 +173,11 @@ int main(int argc, char *argv[])
         src_gpu.upload(frame);
         cv::cuda::rotate(src_gpu, dst_gpu, src_gpu.size(), 180, src_gpu.size().width, src_gpu.size().height);
         dst_gpu.download(frame);
+      }
+
+      if (UseCamera)
+      {
+        writer << frame;
       }
 
       auto startMTCNN = chrono::steady_clock::now();
