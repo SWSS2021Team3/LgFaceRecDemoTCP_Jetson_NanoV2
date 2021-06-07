@@ -11,8 +11,8 @@
 #include "network.h"
 #include "mtcnn.h"
 
-#include "NetworkTCP.h"
-#include "TcpSendRecvJpeg.h"
+#include "commManager.h"
+
 #include <termios.h>
 
 int kbhit()
@@ -45,10 +45,8 @@ using namespace nvuffparser;
 
 int main(int argc, char *argv[])
 {
-  TTcpListenPort *TcpListenPort;
-  TTcpConnectedPort *TcpConnectedPort;
-  struct sockaddr_in cli_addr;
-  socklen_t clilen;
+  CommManager *commManager;
+
   bool UseCamera = false;
 
   if (argc < 2)
@@ -122,25 +120,17 @@ int main(int argc, char *argv[])
 
   bool stop = false;
 
+  int portNumber = atoi(argv[1]);
+  commManager = new CommManager(portNumber);
+
   while (!stop)
   {
-    if ((TcpListenPort = OpenTcpListenPort(atoi(argv[1]))) == NULL) // Open TCP Network port
+
+    if (commManager->connect() == false)
     {
-      printf("OpenTcpListenPortFailed\n");
+      printf("CommManager - connect failed.\n");
       return (-1);
     }
-
-    clilen = sizeof(cli_addr);
-
-    printf("Listening for connections\n");
-
-    if ((TcpConnectedPort = AcceptTcpConnection(TcpListenPort, &cli_addr, &clilen)) == NULL)
-    {
-      printf("AcceptTcpConnection Failed\n");
-      return (-1);
-    }
-
-    printf("Accepted connection Request\n");
 
     cv::cuda::GpuMat src_gpu, dst_gpu;
     cv::Mat dst_img;
@@ -191,8 +181,8 @@ int main(int argc, char *argv[])
       auto endFeatM = chrono::steady_clock::now();
       faceNet.resetVariables();
 
-      if (TcpSendImageAsJpeg(TcpConnectedPort, frame) < 0)
-        break;
+      if (!commManager->sendFrame(frame)) break;
+
       //cv::imshow("VideoSource", frame);
       nbFrames++;
       outputBbox.clear();
@@ -221,8 +211,8 @@ int main(int argc, char *argv[])
           dst_gpu.download(frame);
 
           outputBbox = mtCNN.findFace(frame);
-          if (TcpSendImageAsJpeg(TcpConnectedPort, frame) < 0)
-            break;
+          if (!commManager->sendFrame(frame)) break;
+
           //cv::imshow("VideoSource", frame);
           faceNet.addNewFace(frame, outputBbox);
           auto dTimeEnd = chrono::steady_clock::now();
@@ -237,8 +227,8 @@ int main(int argc, char *argv[])
 #endif // LOG_TIMES
     }
 
-    CloseTcpConnectedPort(&TcpConnectedPort); // Close network port;
-    CloseTcpListenPort(&TcpListenPort);       // Close listen port
+    commManager->disconnect();
+    delete commManager;
 
     auto globalTimeEnd = chrono::steady_clock::now();
 
