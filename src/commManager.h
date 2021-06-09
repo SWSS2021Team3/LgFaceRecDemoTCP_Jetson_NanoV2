@@ -1,3 +1,6 @@
+#ifndef _COMM_MANAGER_H
+#define _COMM_MANAGER_H
+
 #include <opencv2/core.hpp>
 #include "NetworkTCP.h"
 #include "TcpSendRecvJpeg.h"
@@ -15,3 +18,5 @@ public:
     void disconnect();
     bool sendFrame(cv::Mat &frame);
 };
+
+#endif // _COMM_MANAGER_H

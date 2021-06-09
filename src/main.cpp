@@ -1,17 +1,9 @@
 #include <iostream>
 #include <string>
 #include <chrono>
-#include <NvInfer.h>
-#include <NvInferPlugin.h>
-#include <l2norm_helper.h>
-#include <opencv2/core/cuda.hpp>
-#include <opencv2/cudawarping.hpp>
-#include "faceNet.h"
-#include "videoStreamer.h"
-#include "network.h"
-#include "mtcnn.h"
 
 #include "commManager.h"
+#include "faceManager.h"
 
 #include <termios.h>
 
@@ -38,7 +30,7 @@ int getch()
   }
 }
 // Uncomment to print timings in milliseconds
-// #define LOG_TIMES
+#define LOG_TIMES
 
 using namespace nvinfer1;
 using namespace nvuffparser;
@@ -46,6 +38,7 @@ using namespace nvuffparser;
 int main(int argc, char *argv[])
 {
   CommManager *commManager;
+  FaceManager *faceManager;
 
   bool UseCamera = false;
 
@@ -55,138 +48,41 @@ int main(int argc, char *argv[])
     exit(0);
   }
 
-  if (argc == 2)
-    UseCamera = true;
-
-  Logger gLogger = Logger();
-  // Register default TRT plugins (e.g. LRelu_TRT)
-  if (!initLibNvInferPlugins(&gLogger, ""))
-  {
-    return 1;
-  }
-
-  // USER DEFINED VALUES
-  const string uffFile = "../facenetModels/facenet.uff";
-  const string engineFile = "../facenetModels/facenet.engine";
-  DataType dtype = DataType::kHALF;
-  //DataType dtype = DataType::kFLOAT;
-  bool serializeEngine = true;
-  int batchSize = 1;
-  int nbFrames = 0;
-  // int videoFrameWidth =1280;
-  // int videoFrameHeight =720;
-  int videoFrameWidth = 640;
-  int videoFrameHeight = 480;
-
-  int maxFacesPerScene = 8;
-  float knownPersonThreshold = 1.;
-  bool isCSICam = true;
-
-  // init facenet
-  FaceNetClassifier faceNet = FaceNetClassifier(gLogger, dtype, uffFile, engineFile, batchSize, serializeEngine,
-                                                knownPersonThreshold, maxFacesPerScene, videoFrameWidth, videoFrameHeight);
-
-  VideoStreamer *videoStreamer;
-
-  // init opencv stuff
-  if (UseCamera)
-    videoStreamer = new VideoStreamer(0, videoFrameWidth, videoFrameHeight, 60, isCSICam);
-  else
-    videoStreamer = new VideoStreamer(argv[2], videoFrameWidth, videoFrameHeight);
-
-  cv::Mat frame;
-
-  // init mtCNN
-  mtcnn mtCNN(videoFrameHeight, videoFrameWidth);
-
-  //init Bbox and allocate memory for "maxFacesPerScene" faces per scene
-  std::vector<struct Bbox> outputBbox;
-  outputBbox.reserve(maxFacesPerScene);
-
-  // get embeddings of known faces
-  std::vector<struct Paths> paths;
-  cv::Mat image;
-  getFilePaths("../imgs", paths);
-  for (int i = 0; i < paths.size(); i++)
-  {
-    loadInputImage(paths[i].absPath, image, videoFrameWidth, videoFrameHeight);
-    outputBbox = mtCNN.findFace(image);
-    std::size_t index = paths[i].fileName.find_last_of(".");
-    std::string rawName = paths[i].fileName.substr(0, index);
-    faceNet.forwardAddFace(image, outputBbox, rawName);
-    faceNet.resetVariables();
-  }
-  outputBbox.clear();
-
-  bool stop = false;
-
   int portNumber = atoi(argv[1]);
   commManager = new CommManager(portNumber);
 
+  if (argc == 2)
+    faceManager = new FaceManager(commManager);
+  else
+    faceManager = new FaceManager(commManager, argv[2]);
+
+  if (!faceManager->init())
+    return 1;
+
+  bool stop = false;
+
   while (!stop)
   {
-
     if (commManager->connect() == false)
     {
       printf("CommManager - connect failed.\n");
       return (-1);
     }
 
-    cv::cuda::GpuMat src_gpu, dst_gpu;
-    cv::Mat dst_img;
-    // loop over frames with inference
-    auto globalTimeStart = chrono::steady_clock::now();
+    faceManager->start();
 
-    cv::VideoWriter writer;
-    if (UseCamera)
-    {
-      writer.open("record.avi", cv::VideoWriter::fourcc('M', 'J', 'P', 'G'),
-                  24 /* FPS */, cv::Size(videoFrameWidth, videoFrameHeight), true);
-    }
+    // loop over frames with inference
+    int nbFrames = 0;
+    auto globalTimeStart = chrono::steady_clock::now();
 
     while (true)
     {
-      videoStreamer->getFrame(frame);
-      if (frame.empty())
-      {
-        std::cout << "Empty frame! Exiting...\n Try restarting nvargus-daemon by "
-                     "doing: sudo systemctl restart nvargus-daemon"
-                  << std::endl;
+      if (!faceManager->processFrame())
         break;
-      }
-      // Create a destination to paint the source into.
-      dst_img.create(frame.size(), frame.type());
-
-      // Push the images into the GPU
-      if (UseCamera)
-      {
-        src_gpu.upload(frame);
-        cv::cuda::rotate(src_gpu, dst_gpu, src_gpu.size(), 180, src_gpu.size().width, src_gpu.size().height);
-        dst_gpu.download(frame);
-      }
-
-      if (UseCamera)
-      {
-        writer << frame;
-      }
-
-      auto startMTCNN = chrono::steady_clock::now();
-      outputBbox = mtCNN.findFace(frame);
-      auto endMTCNN = chrono::steady_clock::now();
-      auto startForward = chrono::steady_clock::now();
-      faceNet.forward(frame, outputBbox);
-      auto endForward = chrono::steady_clock::now();
-      auto startFeatM = chrono::steady_clock::now();
-      faceNet.featureMatching(frame);
-      auto endFeatM = chrono::steady_clock::now();
-      faceNet.resetVariables();
-
-      if (!commManager->sendFrame(frame)) break;
 
       //cv::imshow("VideoSource", frame);
       nbFrames++;
-      outputBbox.clear();
-      frame.release();
+
       if (kbhit())
       {
         // Stores the pressed key in ch
@@ -201,34 +97,23 @@ int main(int argc, char *argv[])
         {
 
           auto dTimeStart = chrono::steady_clock::now();
-          videoStreamer->getFrame(frame);
-          // Create a destination to paint the source into.
-          dst_img.create(frame.size(), frame.type());
-
-          // Push the images into the GPU
-          src_gpu.upload(frame);
-          cv::cuda::rotate(src_gpu, dst_gpu, src_gpu.size(), 180, src_gpu.size().width, src_gpu.size().height);
-          dst_gpu.download(frame);
-
-          outputBbox = mtCNN.findFace(frame);
-          if (!commManager->sendFrame(frame)) break;
-
-          //cv::imshow("VideoSource", frame);
-          faceNet.addNewFace(frame, outputBbox);
+          if (!faceManager->registerFace())
+            break;
           auto dTimeEnd = chrono::steady_clock::now();
           globalTimeStart += (dTimeEnd - dTimeStart);
         }
       }
 
 #ifdef LOG_TIMES
-      std::cout << "mtCNN took " << std::chrono::duration_cast<chrono::milliseconds>(endMTCNN - startMTCNN).count() << "ms\n";
-      std::cout << "Forward took " << std::chrono::duration_cast<chrono::milliseconds>(endForward - startForward).count() << "ms\n";
-      std::cout << "Feature matching took " << std::chrono::duration_cast<chrono::milliseconds>(endFeatM - startFeatM).count() << "ms\n\n";
+      // std::cout << "mtCNN took " << std::chrono::duration_cast<chrono::milliseconds>(endMTCNN - startMTCNN).count() << "ms\n";
+      // std::cout << "Forward took " << std::chrono::duration_cast<chrono::milliseconds>(endForward - startForward).count() << "ms\n";
+      // std::cout << "Feature matching took " << std::chrono::duration_cast<chrono::milliseconds>(endFeatM - startFeatM).count() << "ms\n\n";
 #endif // LOG_TIMES
     }
 
+    faceManager->stop();
+
     commManager->disconnect();
-    delete commManager;
 
     auto globalTimeEnd = chrono::steady_clock::now();
 
@@ -240,7 +125,8 @@ int main(int argc, char *argv[])
               << " This equals " << fps << "fps.\n";
   }
 
-  videoStreamer->release();
+  delete faceManager;
+  delete commManager;
 
   return 0;
 }
