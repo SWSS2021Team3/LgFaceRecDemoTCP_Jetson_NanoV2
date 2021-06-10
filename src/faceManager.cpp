@@ -2,7 +2,7 @@
 #include <opencv2/core/cuda.hpp>
 #include <opencv2/cudawarping.hpp>
 
-FaceManager::FaceManager(CommManager *comm) : useCamera(true), commManager(comm)
+FaceManager::FaceManager(CommManager *comm) : useCamera(true), rotate180(true), commManager(comm)
 {
     bool isCSICam = true;
 
@@ -10,7 +10,7 @@ FaceManager::FaceManager(CommManager *comm) : useCamera(true), commManager(comm)
     videoStreamer = new VideoStreamer(0, videoFrameWidth, videoFrameHeight, 60, isCSICam);
 }
 
-FaceManager::FaceManager(CommManager *comm, const char *filename) : useCamera(false), commManager(comm)
+FaceManager::FaceManager(CommManager *comm, const char *filename) : useCamera(false), rotate180(false), commManager(comm)
 {
     // init opencv stuff
     videoStreamer = new VideoStreamer(filename, videoFrameWidth, videoFrameHeight);
@@ -76,16 +76,31 @@ bool FaceManager::init()
 void FaceManager::start()
 {
     if (useCamera)
-    {
-        writer.open("record.avi", cv::VideoWriter::fourcc('M', 'J', 'P', 'G'),
-                    24 /* FPS */, cv::Size(videoFrameWidth, videoFrameHeight), true);
-    }
+        openRecordFile("record.avi");
+}
+
+void FaceManager::openRecordFile(const char *filename)
+{
+    writer.open(filename, cv::VideoWriter::fourcc('M', 'J', 'P', 'G'),
+                24 /* FPS */, cv::Size(videoFrameWidth, videoFrameHeight), true);
+}
+
+void FaceManager::record(cv::Mat &frame)
+{
+    writer << frame;
+}
+
+void FaceManager::rotateFrame(cv::Mat &frame)
+{
+    cv::cuda::GpuMat src_gpu, dst_gpu;
+    src_gpu.upload(frame);
+    cv::cuda::rotate(src_gpu, dst_gpu, src_gpu.size(), 180, src_gpu.size().width, src_gpu.size().height);
+    dst_gpu.download(frame);
 }
 
 bool FaceManager::processFrame()
 {
     cv::Mat frame;
-    cv::cuda::GpuMat src_gpu, dst_gpu;
     cv::Mat dst_img;
     std::vector<struct Bbox> outputBbox;
 
@@ -101,17 +116,11 @@ bool FaceManager::processFrame()
     dst_img.create(frame.size(), frame.type());
 
     // Push the images into the GPU
-    if (useCamera)
-    {
-        src_gpu.upload(frame);
-        cv::cuda::rotate(src_gpu, dst_gpu, src_gpu.size(), 180, src_gpu.size().width, src_gpu.size().height);
-        dst_gpu.download(frame);
-    }
+    if (rotate180)
+        rotateFrame(frame);
 
     if (useCamera)
-    {
-        writer << frame;
-    }
+        record(frame);
 
     // auto startMTCNN = chrono::steady_clock::now();
     outputBbox = mtCNN->findFace(frame);
@@ -128,7 +137,7 @@ bool FaceManager::processFrame()
         return false;
 
     outputBbox.clear();
-    frame.release();
+    // frame.release();
 
     return true;
 }
@@ -137,7 +146,6 @@ bool FaceManager::registerFace()
 {
     cv::Mat frame;
 
-    cv::cuda::GpuMat src_gpu, dst_gpu;
     cv::Mat dst_img;
     std::vector<struct Bbox> outputBbox;
 
@@ -146,9 +154,8 @@ bool FaceManager::registerFace()
     dst_img.create(frame.size(), frame.type());
 
     // Push the images into the GPU
-    src_gpu.upload(frame);
-    cv::cuda::rotate(src_gpu, dst_gpu, src_gpu.size(), 180, src_gpu.size().width, src_gpu.size().height);
-    dst_gpu.download(frame);
+    if (rotate180)
+        rotateFrame(frame);
 
     outputBbox = mtCNN->findFace(frame);
     if (!commManager->sendFrame(frame))
