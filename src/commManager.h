@@ -16,6 +16,7 @@ public:
     CommManager(int _port) : port(_port) {}
     bool connect();
     void disconnect();
+    bool sendFace(cv::Mat &frame);
     bool sendFrame(cv::Mat &frame);
 };
 
