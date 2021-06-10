@@ -39,7 +39,7 @@ public:
     void getCroppedFacesAndAlign(cv::Mat frame, std::vector<struct Bbox> outputBbox);
     void preprocessFaces();
     void doInference(float *inputData, float *output);
-    void forwardAddFace(cv::Mat image, std::vector<struct Bbox> outputBbox, const string className);
+    bool forwardAddFace(cv::Mat image, std::vector<struct Bbox> outputBbox, const string className);
     void forward(cv::Mat image, std::vector<struct Bbox> outputBbox);
     void featureMatching(cv::Mat &image);
     void addNewFace(cv::Mat &image, std::vector<struct Bbox> outputBbox);

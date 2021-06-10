@@ -185,7 +185,7 @@ void FaceNetClassifier::doInference(float *inputData, float *output)
     CHECK(cudaFree(buffers[outputIndex]));
 }
 
-void FaceNetClassifier::forwardAddFace(cv::Mat image, std::vector<struct Bbox> outputBbox,
+bool FaceNetClassifier::forwardAddFace(cv::Mat image, std::vector<struct Bbox> outputBbox,
                                        const string className)
 {
 
@@ -201,8 +201,11 @@ void FaceNetClassifier::forwardAddFace(cv::Mat image, std::vector<struct Bbox> o
         person.embeddedFace.insert(person.embeddedFace.begin(), m_output, m_output + 128);
         m_knownFaces.push_back(person);
         m_classCount++;
+        m_croppedFaces.clear();
+        return true;
     }
-    m_croppedFaces.clear();
+
+    return false;
 }
 
 void FaceNetClassifier::forward(cv::Mat frame, std::vector<struct Bbox> outputBbox)
@@ -266,11 +269,29 @@ void FaceNetClassifier::addNewFace(cv::Mat &image, std::vector<struct Bbox> outp
     string newName;
     std::cin >> newName;
     std::cout << "Hi " << newName << ", you will be added to the database.\n";
-    forwardAddFace(image, outputBbox, newName);
-    string filePath = "../imgs/";
-    filePath.append(newName);
-    filePath.append(".jpg");
-    cv::imwrite(filePath, image);
+    if (forwardAddFace(image, outputBbox, newName))
+    {
+        for (struct Bbox &b : outputBbox)
+        {
+            if (!b.exist) continue;
+
+            int x1 = max(0, b.x1);// - (b.x2 - b.x1) / 2);
+            int x2 = min(m_frameWidth, b.x2);// + (b.x2 - b.x1) / 2);
+            int y1 = max(0, b.y1);// - (b.y2 - b.y1) / 3);
+            int y2 = min(m_frameHeight, b.y2);// + (b.y2 - b.y1) / 3);
+
+            cv::Rect faceRect(cv::Point(y1, x1), cv::Point(y2, x2));
+            cv::Mat croppedFace;
+            cv::Mat tempCrop = image(faceRect);
+            cv::resize(tempCrop, croppedFace, cv::Size(160*2, 160*3), 0, 0, cv::INTER_CUBIC);
+
+            string filePath = "../imgs/";
+            filePath.append(newName);
+            filePath.append(".jpg");
+            cv::imwrite(filePath, tempCrop);
+            break;
+        }
+    }
 }
 
 void FaceNetClassifier::resetVariables()
