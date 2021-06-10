@@ -32,6 +32,11 @@ bool CommManager::sendFrame(cv::Mat &frame)
     return TcpSendImageAsJpeg(TcpConnectedPort, frame) >= 0;
 }
 
+bool CommManager::sendFace(cv::Mat &frame)
+{
+    return TcpSendImageAsJpeg(TcpConnectedPort, frame) >= 0;
+}
+
 void CommManager::disconnect()
 {
     CloseTcpConnectedPort(&TcpConnectedPort); // Close network port;
