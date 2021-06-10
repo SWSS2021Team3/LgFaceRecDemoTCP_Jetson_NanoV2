@@ -5,6 +5,8 @@
 #include "NetworkTCP.h"
 #include "TcpSendRecvJpeg.h"
 
+class FaceManager;
+
 class CommManager
 {
 private:
@@ -18,6 +20,7 @@ public:
     void disconnect();
     bool sendFace(cv::Mat &frame);
     bool sendFrame(cv::Mat &frame);
+    bool do_loop(FaceManager *faceManager);
 };
 
 #endif // _COMM_MANAGER_H
