@@ -11,6 +11,10 @@ static  int init_values[2] = { cv::IMWRITE_JPEG_QUALITY,80 }; //default(95) 0-10
 static  std::vector<int> param (&init_values[0], &init_values[0]+2);
 static  std::vector<uchar> sendbuff;//buffer for coding
 
+int TcpSendMessage(TTcpConnectedPort * TcpConnectedPort, uint16_t msg_id, uint16_t msg_length)
+{
+  return 0;
+}
 //-----------------------------------------------------------------
 // TcpSendImageAsJpeg - Sends a Open CV Mat Image commressed as a 
 // jpeg image in side a TCP Stream on the specified TCP local port

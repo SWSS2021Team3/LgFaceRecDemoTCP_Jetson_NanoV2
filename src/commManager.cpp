@@ -57,6 +57,15 @@ bool CommManager::connect()
     return true;
 }
 
+bool CommManager::sendMessage()
+{
+    Payload *p = new Payload();
+    p->data_id = 0x1001;
+    p->data_length = 0;
+    // p->data = NULL;
+    return true;
+}
+
 bool CommManager::sendFrame(cv::Mat &frame)
 {
     return TcpSendImageAsJpeg(TcpConnectedPort, frame) >= 0;
@@ -124,4 +133,12 @@ bool CommManager::do_loop(FaceManager *faceManager)
               << " This equals " << fps << "fps.\n";
 
     return true;
+}
+
+bool CommManager::receiveMessage()
+{
+    bool ret = false;
+
+    // Payload
+    return ret;
 }
