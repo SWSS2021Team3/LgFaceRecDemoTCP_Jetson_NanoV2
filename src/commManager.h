@@ -4,6 +4,7 @@
 #include <opencv2/core.hpp>
 #include "NetworkTCP.h"
 #include "TcpSendRecvJpeg.h"
+#include "TcpSendRecvCmd.h"
 #include "MSG_DB.h"
 
 class FaceManager;
@@ -25,6 +26,7 @@ public:
     bool sendMessage();
     bool receiveMessage();
     bool do_loop(FaceManager *faceManager);
+    Payload* createCmdPacket(int cmd);
 };
 
 class Payload
