@@ -19,11 +19,16 @@ private:
 
     VideoStreamer *videoStreamer;
     bool useCamera;
+    bool rotate180;
 
     cv::VideoWriter writer;
 
     FaceNetClassifier *faceNet;
     mtcnn *mtCNN;
+
+    void rotateFrame(cv::Mat &frame);
+    void openRecordFile(const char *filename);
+    void record(cv::Mat &frame);
 
 public:
     FaceManager(CommManager *comm);
