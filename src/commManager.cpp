@@ -108,15 +108,36 @@ bool CommManager::do_loop(FaceManager *faceManager)
     // loop over frames with inference
     int nbFrames = 0;
     auto globalTimeStart = chrono::steady_clock::now();
+    Payload* payload = NULL;
 
     while (true)
     {
+        if (!TcpRecvCommand(TcpConnectedPort, payload)) {
+            std::cout << "failed to receive payload" << endl;
+            continue;
+        }
+        if (payload == NULL) {
+            std::cout << "command payload is null" << endl;
+            continue;
+        }
+        std::cout << "payload data_id: " << payload->data_id << endl;
+
         if (!faceManager->processFrame())
             break;
 
         //cv::imshow("VideoSource", frame);
         nbFrames++;
 
+        if (payload->data_id == SIGNAL_FM_REQ_FACE_ADD) {
+            std::cout << "SIGNAL_FM_REQ_FACE_ADD" << endl;
+            auto dTimeStart = chrono::steady_clock::now();
+            if (!faceManager->registerFace()) {
+                std::cout << "[ERR] failed to register face" << endl;
+                break;
+            }
+            auto dTimeEnd = chrono::steady_clock::now();
+            globalTimeStart += (dTimeEnd - dTimeStart);
+        }
         if (kbhit())
         {
             // Stores the pressed key in ch
@@ -126,6 +147,7 @@ bool CommManager::do_loop(FaceManager *faceManager)
             {
                 return false;
             }
+            /*
             else if (keyboard == 'n')
             {
 
@@ -135,6 +157,7 @@ bool CommManager::do_loop(FaceManager *faceManager)
                 auto dTimeEnd = chrono::steady_clock::now();
                 globalTimeStart += (dTimeEnd - dTimeStart);
             }
+            */
         }
 
 #ifdef LOG_TIMES
