@@ -1,4 +1,7 @@
+#include <iostream>
 #include "TcpSendRecvCmd.h"
+
+using namespace std;
 
 int TcpSendCommand(TTcpConnectedPort * TcpConnectedPort, Payload* payload)
 {
@@ -36,7 +39,16 @@ bool TcpRecvCommand(TTcpConnectedPort * TcpConnectedPort, Payload* payload)
   }
 
   if((ReadDataTcp(TcpConnectedPort,buff,payloadSize))==payloadSize) {
-    // TODO: convert buff to payload
+    payload = new Payload();
+    payload->data_id = ((Payload*)buff)->data_id;
+    payload->data_length = ((Payload*)buff)->data_length;
+    payload->data = ((Payload*)buff)->data; // deep copy
+
+    cout << "data_id: " << ((Payload*)buff)->data_id << endl;
+    cout << "data_length: " << payload->data_length << endl;
+    for (int i=0; i<payload->data.size(); i++) {
+        cout << " data at " << i << " : " << payload->data.at(i) << endl;
+    }
 
     delete [] buff;
     return true;

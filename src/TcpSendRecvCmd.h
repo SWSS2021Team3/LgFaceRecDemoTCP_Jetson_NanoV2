@@ -1,4 +1,5 @@
 #include "NetworkTCP.h"
+#include "commManager.h"
 
 class Payload;
 
