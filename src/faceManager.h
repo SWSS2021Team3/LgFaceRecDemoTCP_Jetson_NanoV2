@@ -39,6 +39,7 @@ public:
     bool processFrame();
     bool registerFace();
     void stop();
+    bool deleteFace(int uid, int pNum);
 };
 
 #endif // _FACE_MANAGER_H

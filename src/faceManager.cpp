@@ -175,3 +175,13 @@ bool FaceManager::registerFace()
 void FaceManager::stop()
 {
 }
+
+bool FaceManager::deleteFace(int uid, int pNum)
+{
+    std::cout << "deleteFace: " << uid << " / " << pNum << endl;
+    // TODO
+    // 1.delete face DB
+    // uid -> student name
+
+    // 2.update AI handler
+}

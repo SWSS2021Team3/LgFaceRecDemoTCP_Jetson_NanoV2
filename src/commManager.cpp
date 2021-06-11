@@ -4,6 +4,7 @@
 
 #include "commManager.h"
 #include "faceManager.h"
+#include "userAuthManager.h"
 
 #include <termios.h>
 
@@ -109,6 +110,7 @@ bool CommManager::do_loop(FaceManager *faceManager)
     int nbFrames = 0;
     auto globalTimeStart = chrono::steady_clock::now();
     Payload* payload = NULL;
+    UserAuthManager* userAuthManager = new UserAuthManager();
 
     while (true)
     {
@@ -130,6 +132,7 @@ bool CommManager::do_loop(FaceManager *faceManager)
 
         if (payload->data_id == SIGNAL_FM_REQ_FACE_ADD) {
             std::cout << "SIGNAL_FM_REQ_FACE_ADD" << endl;
+            // TODO: get num of pictures from payload
             auto dTimeStart = chrono::steady_clock::now();
             if (!faceManager->registerFace()) {
                 std::cout << "[ERR] failed to register face" << endl;
@@ -138,6 +141,18 @@ bool CommManager::do_loop(FaceManager *faceManager)
             auto dTimeEnd = chrono::steady_clock::now();
             globalTimeStart += (dTimeEnd - dTimeStart);
         }
+        else if (payload->data_id == SIGNAL_FM_REQ_FACE_DELETE) {
+            std::cout << "SIGNAL_FM_REQ_FACE_DELETE" << endl;
+
+        }
+        else if (payload->data_id == SIGNAL_FM_REQ_LOGIN) {
+            std::cout << "SIGNAL_FM_REQ_LOGIN" << endl;
+            // TODO: get login data from payload
+            string userid, passwd;
+            bool loginResult = userAuthManager->verifyUser(userid, passwd);
+            std::cout << "login result : " << loginResult << endl;
+            // TODO: send response payload with login result
+        }
         if (kbhit())
         {
             // Stores the pressed key in ch
@@ -145,6 +160,7 @@ bool CommManager::do_loop(FaceManager *faceManager)
 
             if (keyboard == 'q')
             {
+                delete userAuthManager;
                 return false;
             }
             /*
@@ -176,6 +192,7 @@ bool CommManager::do_loop(FaceManager *faceManager)
     std::cout << "Counted " << nbFrames << " frames in " << double(milliseconds) / 1000. << " seconds!"
               << " This equals " << fps << "fps.\n";
 
+    delete userAuthManager;
     return true;
 }
 
