@@ -262,7 +262,7 @@ void FaceNetClassifier::featureMatching(cv::Mat &image)
     }
 }
 
-void FaceNetClassifier::addNewFace(cv::Mat &image, std::vector<struct Bbox> outputBbox)
+void FaceNetClassifier::addNewFace(cv::Mat &image, std::vector<struct Bbox> outputBbox, cv::Mat &croppedFace)
 {
     std::cout << "Adding new person...\nPlease make sure there is only one face in the current frame.\n"
               << "What's your name? ";
@@ -281,14 +281,13 @@ void FaceNetClassifier::addNewFace(cv::Mat &image, std::vector<struct Bbox> outp
             int y2 = min(m_frameHeight, b.y2);// + (b.y2 - b.y1) / 3);
 
             cv::Rect faceRect(cv::Point(y1, x1), cv::Point(y2, x2));
-            cv::Mat croppedFace;
             cv::Mat tempCrop = image(faceRect);
             cv::resize(tempCrop, croppedFace, cv::Size(160*2, 160*3), 0, 0, cv::INTER_CUBIC);
 
             string filePath = "../imgs/";
             filePath.append(newName);
             filePath.append(".jpg");
-            cv::imwrite(filePath, tempCrop);
+            cv::imwrite(filePath, croppedFace);
             break;
         }
     }

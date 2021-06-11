@@ -145,6 +145,7 @@ bool FaceManager::processFrame()
 bool FaceManager::registerFace()
 {
     cv::Mat frame;
+    cv::Mat croppedFace;
 
     cv::Mat dst_img;
     std::vector<struct Bbox> outputBbox;
@@ -158,11 +159,14 @@ bool FaceManager::registerFace()
         rotateFrame(frame);
 
     outputBbox = mtCNN->findFace(frame);
-    if (!commManager->sendFrame(frame))
-        return false;
+    // if (!commManager->sendFrame(frame))
+    //     return false;
 
     //cv::imshow("VideoSource", frame);
-    faceNet->addNewFace(frame, outputBbox);
+    faceNet->addNewFace(frame, outputBbox, croppedFace);
+
+    if (!commManager->sendFace(croppedFace))
+        return false;
 
     // frame.release();
     return true;

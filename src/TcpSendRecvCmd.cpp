@@ -10,7 +10,7 @@ int TcpSendCommand(TTcpConnectedPort * TcpConnectedPort, Payload* payload)
     if (WriteDataTcp(TcpConnectedPort,(unsigned char *)&payloadSize,sizeof(payloadSize))!=sizeof(payloadSize)) {
       return(-1);
     }
-    return(WriteDataTcp(TcpConnectedPort,(unsigned char *)payload, sizeof(payload));
+    return(WriteDataTcp(TcpConnectedPort,(unsigned char *)payload, sizeof(payload)));
 }
 
 
@@ -29,7 +29,8 @@ bool TcpRecvCommand(TTcpConnectedPort * TcpConnectedPort, Payload* payload)
     return false;
   }
 
-  buff = new (std::nothrow) unsigned char [payloadSize];
+  // TODO:: apply nothrow buff = new (std::nothrow) unsigned char [payloadSize];
+  buff = new unsigned char [payloadSize];
   if (buff==NULL) {
     return false;
   }

@@ -73,7 +73,7 @@ bool CommManager::sendFrame(cv::Mat &frame)
         std::cout << "unable to create a payload" << endl;
         return false;
     }
-    int ret = TcpSendCommand(TcpConnectedPort, &payload);
+    int ret = TcpSendCommand(TcpConnectedPort, payload);
     if (ret < 0) {
         std::cout << "failed to send command" << endl;
         return false;
@@ -88,7 +88,7 @@ bool CommManager::sendFace(cv::Mat &frame)
         std::cout << "unable to create a payload" << endl;
         return false;
     }
-    int ret = TcpSendCommand(TcpConnectedPort, &payload);
+    int ret = TcpSendCommand(TcpConnectedPort, payload);
     if (ret < 0) {
         std::cout << "failed to send command" << endl;
         return false;
@@ -169,6 +169,6 @@ Payload* CommManager::createCmdPacket(int cmd)
     Payload* payload = new Payload();
     payload->data_id = cmd;
     payload->data_length = 0;
-    payload->data = NULL;
+    // payload->data = NULL; // TODO: set to NULL
     return payload;
 }
