@@ -10,6 +10,6 @@ bool UserAuthManager::verifyUser(string userid, string passwd) {
     // TODO: get user passwd from UserDB via security manager
 
     size_t pLen = strlen(passwd.c_str());
-    return strncmp(passwd, passwdFromDB, pLen);
+    return strncmp(passwd.c_str(), passwdFromDB.c_str(), pLen);
 }
 
