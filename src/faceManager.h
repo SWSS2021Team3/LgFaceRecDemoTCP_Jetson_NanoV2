@@ -7,6 +7,11 @@
 #include "commManager.h"
 #include "videoStreamer.h"
 
+struct faceData {
+    std::string userID;
+    std::vector<std::string> faceNumber;
+};
+
 class FaceManager
 {
 private:
@@ -41,9 +46,13 @@ public:
     bool processFrame();
     bool registerFace();
     void stop();
-    bool deleteFace(int uid, int pNum);
+    bool deleteFaceDB(int userId, int faceId);
+    bool addFaceDB(int userId, int faceId);
     void sendFaceImages(int userId);
     void setCurrentUid(int uid);
+    bool findUserFromDB(int userId);
+    vector<string> getFaceListFromDB(int userId);
+    void readFaceDB();
 };
 
 #endif // _FACE_MANAGER_H

@@ -13,7 +13,7 @@ FaceManager::FaceManager(CommManager *comm) : useCamera(true), rotate180(true), 
 FaceManager::FaceManager(CommManager *comm, const char *filename) : useCamera(false), rotate180(false), commManager(comm)
 {
     // init opencv stuff
-    videoStreamer = new VideoStreamer(filename, videoFrameWidth, videoFrameHeight);
+    videoStreamer = new VideoStreamer(filename, videoFrameWidth, videoFrameHeight);mCurrentUid = -1;
     mCurrentUid = -1;
 }
 
@@ -193,18 +193,89 @@ void FaceManager::stop()
 {
 }
 
-bool FaceManager::deleteFace(int uid, int pNum)
+bool FaceManager::deleteFaceDB(int userId, int faceId)
 {
-    std::cout << "deleteFace: " << uid << " / " << pNum << endl;
+    std::cout << "deleteFace: " << userId << " / " << faceId << endl;
     // TODO
     // 1.delete face DB
     // uid -> student name
 
     // 2.update AI handler
+    return true;
+}
+
+bool FaceManager::addFaceDB(int userId, int faceid)
+{
+    std::cout << "addFaceDB: " << userId << " / " << faceid << endl;
+    // TODO
+    // 1.delete face DB
+    // uid -> student name
+
+    // 2.update AI handler
+    return true;
+}
+
+bool FaceManager::findUserFromDB(int userId)
+{
+    std::cout << "findUserFromDB: " << userId << endl;
+
+    return true;
 }
 
 void FaceManager::setCurrentUid(int uid) {
     if (uid >= 0) {
         mCurrentUid = uid;
     }
+}
+vector<string> FaceManager::getFaceListFromDB(int userId)
+{
+    vector<string> ret;
+
+    return ret;
+}
+
+void FaceManager::readFaceDB()
+{
+    std::cout << "readFaceDB" << endl;
+    vector<faceData> _facelist;
+    
+    faceData fd;
+    string temp_line;
+    string temp_uid;
+    string temp_vid;
+    
+    ifstream video_db("./videolist");
+    while(video_db.good())
+    {
+        getline(video_db, temp_line);
+        if(temp_line.size() == 0)
+        break;
+        
+        std::string delimiter = " ";
+        size_t pos = 0;
+        bool is_uid = true;
+        std::string token;
+        
+        while ((pos = temp_line.find(delimiter)) != std::string::npos) {
+            token = temp_line.substr(0, pos);
+
+            if(is_uid == true){
+                temp_uid = token;
+                std::cout << "uid : " << temp_uid << endl;
+                is_uid = false;
+            }
+            else{
+                temp_vid = token;
+                std::cout << "vid : " << temp_vid << endl;
+            }
+            temp_line.erase(0, pos + delimiter.length());
+        }
+        //read last token
+        token = temp_line.substr(0, pos);
+        temp_vid = token;
+        std::cout << "vid : " << temp_vid << endl;
+    }
+        
+    video_db.close();
+    return;
 }
