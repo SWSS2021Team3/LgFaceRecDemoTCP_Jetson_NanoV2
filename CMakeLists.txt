@@ -6,6 +6,8 @@ set (CMAKE_CXX_STANDARD 11)
 
 # OpenCV
 find_package(OpenCV REQUIRED)
+# OpenSSL
+find_package(OpenSSL REQUIRED)
 find_package(CUDA)
 message("-- CUDA version: ${CUDA_VERSION}")
 
@@ -77,4 +79,4 @@ target_link_libraries(${PROJECT_NAME}
   trt_l2norm_helper
   ${TENSORRT_LIBRARY}
 )
-target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBS}) 
+target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBS} OpenSSL::SSL OpenSSL::Crypto) 
