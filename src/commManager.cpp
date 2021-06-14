@@ -118,6 +118,26 @@ bool CommManager::sendFace(cv::Mat &frame)
     return ret >= 0;
 }
 
+bool CommManager::sendLoginResp(bool result_ok)
+{
+    pthread_mutex_lock(&sendMutex);
+
+    if (result_ok) {
+        if (!sendCommand(SIGNAL_FM_RESP_LOGIN_OK)) {
+            pthread_mutex_unlock(&sendMutex);
+            return false;
+        }
+    } else {
+        if (!sendCommand(SIGNAL_FM_RESP_LOGIN_FAILED)) {
+            pthread_mutex_unlock(&sendMutex);
+            return false;
+        }
+    }
+
+    pthread_mutex_unlock(&sendMutex);
+    return true;
+}
+
 void CommManager::disconnect()
 {
     CloseTcpConnectedPort(&TcpConnectedPort); // Close network port;
@@ -187,6 +207,24 @@ bool CommManager::do_loop(FaceManager *faceManager)
                 if (!faceManager->registerFace())
                 {
                     std::cout << "[ERR] failed to register face" << endl;
+                }
+                break;
+            }
+            case Command::LOGIN:
+            {
+                std::cout << "process LOGIN" << endl;
+                string userid = cmdMsg.userId;
+                string password = cmdMsg.password;
+                bool loginResult = userAuthManager->verifyUser(userid, password);
+                std::cout << "login result : " << loginResult << endl;
+
+                // send response payload with login result
+                int uid = userAuthManager->getCurrentUid();
+                if (uid < 0) {
+                    std::cout << "failed to get user id from database" << endl;
+                    sendLoginResp(false);
+                } else {
+                    sendLoginResp(true);
                 }
                 break;
             }
@@ -274,16 +312,17 @@ void CommManager::receive()
         case SIGNAL_FM_REQ_FACE_DELETE:
             std::cout << "SIGNAL_FM_REQ_FACE_DELETE" << std::endl;
             break;
-            //case SIGNAL_FM_REQ_LOGIN:
-            //{
-            //	std::cout << "SIGNAL_FM_REQ_LOGIN" << std::endl;
-            //	 TODO: get login data from payload
-            //	string userid, passwd;
-            //	bool loginResult = userAuthManager->verifyUser(userid, passwd);
-            //	std::cout << "login result : " << loginResult << endl;
-            //	break;
-            //}
+        case SIGNAL_FM_REQ_LOGIN:
+        {
+            std::cout << "SIGNAL_FM_REQ_LOGIN" << endl;
+            pthread_mutex_lock(&recvMutex);
+            string userid, password;
+            // TODO: get userid, password from payload
 
+            commandQueue.push(CommandMessage(Command::LOGIN, userid, password));
+            pthread_mutex_unlock(&recvMutex);
+            break;
+        }
         default:
             break;
         }

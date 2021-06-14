@@ -16,6 +16,7 @@ enum class Command
 {
     GET_FACES,
     ADD_FACE,
+    LOGIN,
 };
 
 class CommandMessage
@@ -53,6 +54,7 @@ public:
     bool sendFace(cv::Mat &frame);
     bool sendFrame(cv::Mat &frame);
     bool sendRegisteredFace(cv::Mat &frame);
+    bool sendLoginResp(bool result_ok);
     bool sendMessage();
     void receive();
     bool do_loop(FaceManager *faceManager);
