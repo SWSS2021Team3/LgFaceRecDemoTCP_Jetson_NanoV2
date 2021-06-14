@@ -18,6 +18,18 @@ enum class Command
     ADD_FACE,
 };
 
+class CommandMessage
+{
+public:
+    CommandMessage(Command _c) : cmd(_c) {}
+    CommandMessage(Command _c, int _uid) : cmd(_c), uid(_uid) {}
+    CommandMessage(Command _c, std::string userId, std::string password) {}
+    Command cmd;
+    std::string userId;
+    std::string password;
+    int uid;
+};
+
 class CommManager
 {
 private:
@@ -28,7 +40,7 @@ private:
 
     FaceManager* lFaceManager;
     pthread_mutex_t recvMutex;
-    std::queue<std::pair<Command, int>> commandQueue;
+    std::queue<CommandMessage> commandQueue;
 
 public:
     CommManager(int _port) : port(_port)

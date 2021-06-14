@@ -168,17 +168,17 @@ bool CommManager::do_loop(FaceManager *faceManager)
         pthread_mutex_lock(&recvMutex);
         if (!commandQueue.empty())
         {
-            Command cmd = commandQueue.front().first;
-            int param = commandQueue.front().second;
+            CommandMessage cmdMsg = commandQueue.front();
+            // int param = commandQueue.front().second;
             commandQueue.pop();
 
-            switch (cmd)
+            switch (cmdMsg.cmd)
             {
             case Command::GET_FACES:
             {
                 std::cout << "get-face" << std::endl;
-                int uid = param;
-                faceManager->sendFaceImages(uid);
+                // int uid = param;
+                faceManager->sendFaceImages(11);
                 break;
             }
             case Command::ADD_FACE:
@@ -260,14 +260,14 @@ void CommManager::receive()
         case SIGNAL_FM_REQ_GET_FACES:
             std::cout << "SIGNAL_FM_REQ_GET_FACES" << endl;
             pthread_mutex_lock(&recvMutex);
-            commandQueue.push(std::make_pair(Command::GET_FACES, 11));  // TODO: user id
+            commandQueue.push(CommandMessage(Command::GET_FACES, 11));  // TODO: user id
             pthread_mutex_unlock(&recvMutex);
             break;
         case SIGNAL_FM_REQ_FACE_ADD:
         {
             std::cout << "SIGNAL_FM_REQ_FACE_ADD" << endl;
             pthread_mutex_lock(&recvMutex);
-            commandQueue.push(std::make_pair(Command::ADD_FACE, 11));
+            commandQueue.push(CommandMessage(Command::ADD_FACE, 11));
             pthread_mutex_unlock(&recvMutex);
             break;
         }
