@@ -1,6 +1,9 @@
 #include "faceManager.h"
 #include <opencv2/core/cuda.hpp>
 #include <opencv2/cudawarping.hpp>
+#include <iostream>
+#include <cstring>
+#include <string>
 
 FaceManager::FaceManager(CommManager *comm) : useCamera(true), rotate180(true), commManager(comm)
 {
@@ -173,7 +176,7 @@ bool FaceManager::registerFace()
     return true;
 }
 
-void FaceManager::sendFaceImages(int userId)
+void FaceManager::sendFaceImages(string userId)
 {
     // TODO: read user's images
     std::vector<struct Paths> paths;
@@ -193,7 +196,7 @@ void FaceManager::stop()
 {
 }
 
-bool FaceManager::deleteFaceDB(int userId, int faceId)
+bool FaceManager::deleteFaceDB(string userId, string faceId)
 {
     std::cout << "deleteFace: " << userId << " / " << faceId << endl;
     // TODO
@@ -204,7 +207,7 @@ bool FaceManager::deleteFaceDB(int userId, int faceId)
     return true;
 }
 
-bool FaceManager::addFaceDB(int userId, int faceid)
+bool FaceManager::addFaceDB(string userId, string faceid)
 {
     std::cout << "addFaceDB: " << userId << " / " << faceid << endl;
     // TODO
@@ -215,26 +218,40 @@ bool FaceManager::addFaceDB(int userId, int faceid)
     return true;
 }
 
-bool FaceManager::findUserFromDB(int userId)
+bool FaceManager::findUserFromDB(string userId)
 {
     std::cout << "findUserFromDB: " << userId << endl;
 
     return true;
 }
 
-void FaceManager::setCurrentUid(int uid) {
+void FaceManager::setCurrentUid(string userId) {
+    int uid = stoi(userId);
     if (uid >= 0) {
         mCurrentUid = uid;
     }
 }
-vector<string> FaceManager::getFaceListFromDB(int userId)
+vector<string> FaceManager::getFaceListFromDB(string userId)
 {
     vector<string> ret;
-
-    return ret;
+    vector<faceData> v_fd = readFaceDB();
+    for(int i=0; i<v_fd.size(); i++)
+    {
+        if(!strncmp(v_fd[i].userID.c_str(), userId.c_str(), userId.size()))
+        {
+            std::cout << "Found Face List" << endl;
+            ret = v_fd[i].faceNumber;
+            for(int i=0; i<ret.size(); i++)
+            {
+                std::cout << "List : " << ret[i] << endl;
+            }
+            return ret;
+        }
+    }
+    return ret; //return NULL
 }
 
-void FaceManager::readFaceDB()
+vector<faceData> FaceManager::readFaceDB()
 {
     std::cout << "readFaceDB" << endl;
     vector<faceData> _facelist;
@@ -261,21 +278,22 @@ void FaceManager::readFaceDB()
 
             if(is_uid == true){
                 temp_uid = token;
-                std::cout << "uid : " << temp_uid << endl;
-                is_uid = false;
+                fd.userID = temp_uid;
+                is_uid = false; //First token is UID
             }
             else{
                 temp_vid = token;
-                std::cout << "vid : " << temp_vid << endl;
+                fd.faceNumber.push_back(temp_vid);
             }
             temp_line.erase(0, pos + delimiter.length());
         }
         //read last token
         token = temp_line.substr(0, pos);
         temp_vid = token;
-        std::cout << "vid : " << temp_vid << endl;
+        fd.faceNumber.push_back(temp_vid);
+        _facelist.push_back(fd);
+        fd.faceNumber.clear();
     }
-        
     video_db.close();
-    return;
+    return _facelist;
 }

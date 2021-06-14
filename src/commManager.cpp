@@ -198,7 +198,8 @@ bool CommManager::do_loop(FaceManager *faceManager)
             {
                 std::cout << "get-face" << std::endl;
                 // int uid = param;
-                faceManager->sendFaceImages(11);
+                faceManager->sendFaceImages("2");
+                faceManager->getFaceListFromDB("2");
                 break;
             }
             case Command::ADD_FACE:
@@ -225,7 +226,7 @@ bool CommManager::do_loop(FaceManager *faceManager)
                     sendLoginResp(false);
                 } else {
                     // set uid to faceManager here
-                    faceManager->setCurrentUid(uid);
+                    faceManager->setCurrentUid(to_string(uid));
                     sendLoginResp(true);
                 }
                 break;

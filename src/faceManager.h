@@ -46,13 +46,13 @@ public:
     bool processFrame();
     bool registerFace();
     void stop();
-    bool deleteFaceDB(int userId, int faceId);
-    bool addFaceDB(int userId, int faceId);
-    void sendFaceImages(int userId);
-    void setCurrentUid(int uid);
-    bool findUserFromDB(int userId);
-    vector<string> getFaceListFromDB(int userId);
-    void readFaceDB();
+    bool deleteFaceDB(string userId, string faceId);
+    bool addFaceDB(string userId, string faceId);
+    void sendFaceImages(string userId);
+    void setCurrentUid(string userId);
+    bool findUserFromDB(string userId);
+    vector<string> getFaceListFromDB(string userId);
+    vector<faceData> readFaceDB();
 };
 
 #endif // _FACE_MANAGER_H
