@@ -19,6 +19,7 @@ public:
     bool verifyUser(std::string userid, std::string passwd);
     int getCurrentUid();
 private:
+    void resetCurrentUser();
     void loadUserDB();
     int saveUserDB();
 	bool findUserFromDB(std::string userid);

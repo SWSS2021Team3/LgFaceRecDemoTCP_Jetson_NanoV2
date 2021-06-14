@@ -14,6 +14,7 @@ FaceManager::FaceManager(CommManager *comm, const char *filename) : useCamera(fa
 {
     // init opencv stuff
     videoStreamer = new VideoStreamer(filename, videoFrameWidth, videoFrameHeight);
+    mCurrentUid = -1;
 }
 
 FaceManager::~FaceManager()
@@ -200,4 +201,10 @@ bool FaceManager::deleteFace(int uid, int pNum)
     // uid -> student name
 
     // 2.update AI handler
+}
+
+void FaceManager::setCurrentUid(int uid) {
+    if (uid >= 0) {
+        mCurrentUid = uid;
+    }
 }

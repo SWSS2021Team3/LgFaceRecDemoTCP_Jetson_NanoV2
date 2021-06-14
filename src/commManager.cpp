@@ -224,6 +224,8 @@ bool CommManager::do_loop(FaceManager *faceManager)
                     std::cout << "failed to get user id from database" << endl;
                     sendLoginResp(false);
                 } else {
+                    // set uid to faceManager here
+                    faceManager->setCurrentUid(uid);
                     sendLoginResp(true);
                 }
                 break;

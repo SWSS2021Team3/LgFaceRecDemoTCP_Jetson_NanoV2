@@ -26,6 +26,8 @@ private:
     FaceNetClassifier *faceNet;
     mtcnn *mtCNN;
 
+    int mCurrentUid;
+
     void rotateFrame(cv::Mat &frame);
     void openRecordFile(const char *filename);
     void record(cv::Mat &frame);
@@ -41,6 +43,7 @@ public:
     void stop();
     bool deleteFace(int uid, int pNum);
     void sendFaceImages(int userId);
+    void setCurrentUid(int uid);
 };
 
 #endif // _FACE_MANAGER_H

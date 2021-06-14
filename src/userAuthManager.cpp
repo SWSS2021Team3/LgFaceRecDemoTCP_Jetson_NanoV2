@@ -19,14 +19,18 @@ struct UserData UserDB[NUM_STUDENTS] = {
 
 
 UserAuthManager::UserAuthManager() {
-	mCurrentUserData.userID = "";
-    mCurrentUserData.password = "";
-    mCurrentUserData.uid = -1;
-    mIsFound = false;
+    resetCurrentUser();
     loadUserDB();
 }
 
 UserAuthManager::~UserAuthManager() {
+    resetCurrentUser();
+}
+
+void UserAuthManager::resetCurrentUser() {
+	mCurrentUserData.userID = "";
+    mCurrentUserData.password = "";
+    mCurrentUserData.uid = -1;
     mIsFound = false;
 }
 
@@ -57,7 +61,6 @@ int UserAuthManager::saveUserDB() {
 }
 
 bool UserAuthManager::findUserFromDB(string userid) {
-    mIsFound = false;
     for (int i=0; i<NUM_STUDENTS; i++) {
 		if (!strcmp(UserDB[i].userID.c_str(), userid.c_str())) {
 			mCurrentUserData.userID = UserDB[i].userID;
@@ -72,6 +75,7 @@ bool UserAuthManager::findUserFromDB(string userid) {
 
 // passwd : hashed digest
 bool UserAuthManager::verifyUser(string userid, string passwd) {
+    resetCurrentUser();
 	size_t iLen = strlen(userid.c_str());
 	if (iLen > LIMIT_ID_LENGTH) {
 		cout << "invalid id length" << endl;
