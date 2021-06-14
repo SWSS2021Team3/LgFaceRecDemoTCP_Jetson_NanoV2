@@ -130,7 +130,7 @@ bool CommManager::do_loop(FaceManager *faceManager)
     int nbFrames = 0;
     auto globalTimeStart = chrono::steady_clock::now();
     Payload *payload = NULL;
-    UserAuthManager *userAuthManager = new UserAuthManager();
+    UserAuthManager* userAuthManager = new UserAuthManager();
 
     lFaceManager = faceManager;
     int status;

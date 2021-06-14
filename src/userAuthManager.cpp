@@ -4,12 +4,96 @@
 
 using namespace std;
 
+struct UserData UserDB[NUM_STUDENTS] = {
+	{"kyuwoon.kim", "hashedpassword", 0},
+	{"gyeonghun.ro", "hashedpassword", 1},
+	{"wonyoung.chang", "hashedpassword", 2},
+	{"soohyun.yi", "hashedpassword", 3},
+	{"hyejin.oh", "hashedpassword", 4},
+	{"hyungjin.choi", "hashedpassword", 5},
+	{"vibhanshu.dhote", "hashedpassword", 6},
+	{"cliff.huff", "hashedpassword", 7}
+};
+
+
+
+
+UserAuthManager::UserAuthManager() {
+	mCurrentUserData.userID = "";
+    mCurrentUserData.password = "";
+    mCurrentUserData.uid = -1;
+    mIsFound = false;
+    loadUserDB();
+}
+
+UserAuthManager::~UserAuthManager() {
+    mIsFound = false;
+}
+
+void UserAuthManager::loadUserDB() {
+    unsigned char* readData = NULL;
+    // TODO: load UserDB from Security Manager
+
+
+    if (readData == NULL) {
+        cout << "[ERR] failed to load UserDB" << endl;
+        return;
+    }
+    struct UserData* udata = (struct UserData*)readData;
+	for (int i=0; i<NUM_STUDENTS; i++) {
+        UserDB[i].userID = udata->userID;
+		UserDB[i].password = udata->password;
+        UserDB[i].uid = udata->uid;
+	}
+}
+
+int UserAuthManager::saveUserDB() {
+	unsigned char* saveData = (unsigned char*)UserDB;
+    int ret = -1;
+
+    // TODO: transfer UserDB to Security Manager
+
+	return ret;
+}
+
+bool UserAuthManager::findUserFromDB(string userid) {
+    mIsFound = false;
+    for (int i=0; i<NUM_STUDENTS; i++) {
+		if (!strcmp(UserDB[i].userID.c_str(), userid.c_str())) {
+			mCurrentUserData.userID = UserDB[i].userID;
+			mCurrentUserData.password = UserDB[i].password;
+			mCurrentUserData.uid = UserDB[i].uid;
+            mIsFound = true;
+			break;;
+		}
+	}
+    return mIsFound;
+}
+
 // passwd : hashed digest
 bool UserAuthManager::verifyUser(string userid, string passwd) {
-    string passwdFromDB;
-    // TODO: get user passwd from UserDB via security manager
-
+	size_t iLen = strlen(userid.c_str());
+	if (iLen > LIMIT_ID_LENGTH) {
+		cout << "invalid id length" << endl;
+		return false;
+	}
     size_t pLen = strlen(passwd.c_str());
-    return strncmp(passwd.c_str(), passwdFromDB.c_str(), pLen);
+	if (pLen > LIMIT_PW_LENGTH) {
+		cout << "invalid password legnth" << endl;
+		return false;
+	}
+	if(!findUserFromDB(userid)) {
+		cout << "unable to find user : " << userid << endl;
+		return false;
+	}
+
+	if (mIsFound) {
+		return !strncmp(passwd.c_str(), mCurrentUserData.password.c_str(), pLen);
+	}
+	return false;
+}
+
+int UserAuthManager::getCurrentUid() {
+    return mCurrentUserData.uid;
 }
 
