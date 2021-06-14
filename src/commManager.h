@@ -3,6 +3,7 @@
 
 #include <opencv2/core.hpp>
 #include <pthread.h>
+#include <queue>
 #include "NetworkTCP.h"
 #include "TcpSendRecvJpeg.h"
 #include "TcpSendRecvCmd.h"
@@ -10,6 +11,12 @@
 
 class FaceManager;
 class Payload;
+
+enum class Command
+{
+    GET_FACES,
+    ADD_FACE,
+};
 
 class CommManager
 {
@@ -20,16 +27,20 @@ private:
     pthread_mutex_t sendMutex;
 
     FaceManager* lFaceManager;
+    pthread_mutex_t recvMutex;
+    std::queue<std::pair<Command, int>> commandQueue;
 
 public:
     CommManager(int _port) : port(_port)
     {
         pthread_mutex_init(&sendMutex, NULL);
+        pthread_mutex_init(&recvMutex, NULL);
     }
     bool connect();
     void disconnect();
     bool sendFace(cv::Mat &frame);
     bool sendFrame(cv::Mat &frame);
+    bool sendRegisteredFace(cv::Mat &frame);
     bool sendMessage();
     void receive();
     bool do_loop(FaceManager *faceManager);

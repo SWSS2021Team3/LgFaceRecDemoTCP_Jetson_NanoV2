@@ -40,6 +40,7 @@ public:
     bool registerFace();
     void stop();
     bool deleteFace(int uid, int pNum);
+    void sendFaceImages(int userId);
 };
 
 #endif // _FACE_MANAGER_H

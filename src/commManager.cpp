@@ -9,7 +9,7 @@
 #include <termios.h>
 #include <pthread.h>
 
-void* receiverFunc(void* arg);
+void *receiverFunc(void *arg);
 
 int kbhit()
 {
@@ -86,11 +86,10 @@ bool CommManager::sendFrame(cv::Mat &frame)
     return ret >= 0;
 }
 
-bool CommManager::sendFace(cv::Mat &frame)
+bool CommManager::sendRegisteredFace(cv::Mat &frame)
 {
     pthread_mutex_lock(&sendMutex);
 
-    // if (!sendCommand(SIGNAL_FM_RESP_FACE_ADD))
     if (!sendCommand(SIGNAL_FM_RESP_GET_FACES))
     {
         pthread_mutex_unlock(&sendMutex);
@@ -103,6 +102,21 @@ bool CommManager::sendFace(cv::Mat &frame)
     return ret >= 0;
 }
 
+bool CommManager::sendFace(cv::Mat &frame)
+{
+    pthread_mutex_lock(&sendMutex);
+
+    if (!sendCommand(SIGNAL_FM_RESP_FACE_ADD))
+    {
+        pthread_mutex_unlock(&sendMutex);
+        return false;
+    }
+
+    int ret = TcpSendImageAsJpeg(TcpConnectedPort, frame);
+    pthread_mutex_unlock(&sendMutex);
+
+    return ret >= 0;
+}
 
 void CommManager::disconnect()
 {
@@ -115,13 +129,13 @@ bool CommManager::do_loop(FaceManager *faceManager)
     // loop over frames with inference
     int nbFrames = 0;
     auto globalTimeStart = chrono::steady_clock::now();
-    Payload* payload = NULL;
-    UserAuthManager* userAuthManager = new UserAuthManager();
+    Payload *payload = NULL;
+    UserAuthManager *userAuthManager = new UserAuthManager();
 
     lFaceManager = faceManager;
     int status;
     pthread_t tid;
-    if ((status = pthread_create(&tid, NULL, &receiverFunc, (void*)this)) != 0)
+    if ((status = pthread_create(&tid, NULL, &receiverFunc, (void *)this)) != 0)
     {
         std::cout << "thread create error" << std::endl;
         return (-1);
@@ -151,10 +165,41 @@ bool CommManager::do_loop(FaceManager *faceManager)
         }
         cnt++;
 
-        pthread_mutex_lock(&sendMutex);
-        if (sendCommand(SIGNAL_FM_BASE) < 0) // PING
+        pthread_mutex_lock(&recvMutex);
+        if (!commandQueue.empty())
         {
-            std::cout << "failed to send command" << endl;
+            Command cmd = commandQueue.front().first;
+            int param = commandQueue.front().second;
+            commandQueue.pop();
+
+            switch (cmd)
+            {
+            case Command::GET_FACES:
+            {
+                std::cout << "get-face" << std::endl;
+                int uid = param;
+                faceManager->sendFaceImages(uid);
+                break;
+            }
+            case Command::ADD_FACE:
+            {
+                // TODO: get num of pictures from payload
+                if (!faceManager->registerFace())
+                {
+                    std::cout << "[ERR] failed to register face" << endl;
+                }
+                break;
+            }
+            default:
+                break;
+            }
+        }
+        pthread_mutex_unlock(&recvMutex);
+
+        pthread_mutex_lock(&sendMutex);
+        if (!sendCommand(SIGNAL_FM_BASE)) // PING
+        {
+            std::cout << " failed to send command" << endl;
             pthread_mutex_unlock(&sendMutex);
             break;
         }
@@ -181,10 +226,9 @@ bool CommManager::do_loop(FaceManager *faceManager)
     return true;
 }
 
-
-void* receiverFunc(void* arg)
+void *receiverFunc(void *arg)
 {
-    CommManager* commManager = (CommManager*)arg;
+    CommManager *commManager = (CommManager *)arg;
 
     commManager->receive();
 
@@ -193,67 +237,58 @@ void* receiverFunc(void* arg)
 
 void CommManager::receive()
 {
-	pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
+    pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
 
-	TTcpConnectedPort *connection = TcpConnectedPort;
+    TTcpConnectedPort *connection = TcpConnectedPort;
 
-	Payload payload;
+    Payload payload;
 
-	while (true)
-	{
+    while (true)
+    {
         std::cout << "wait cmd" << std::endl;
 
-		if (!TcpRecvCommand(connection, &payload)) {
-			std::cout << "failed to receive payload" << std::endl;
-			continue;
-		}
+        if (!TcpRecvCommand(connection, &payload))
+        {
+            std::cout << "failed to receive payload" << std::endl;
+            continue;
+        }
 
-		std::cout << "payload data_id: " << payload.data_id << std::endl;
+        std::cout << "payload data_id: " << payload.data_id << std::endl;
 
-		switch (payload.data_id)
-		{
-            // TODO: GET_FACES / FACE_ADD
-		case SIGNAL_FM_REQ_GET_FACES:
-		{
+        switch (payload.data_id)
+        {
+        case SIGNAL_FM_REQ_GET_FACES:
             std::cout << "SIGNAL_FM_REQ_GET_FACES" << endl;
-            // TODO: get num of pictures from payload
-            auto dTimeStart = chrono::steady_clock::now();
-            if (!lFaceManager->registerFace()) {
-                std::cout << "[ERR] failed to register face" << endl;
-                break;
-            }
+            pthread_mutex_lock(&recvMutex);
+            commandQueue.push(std::make_pair(Command::GET_FACES, 11));  // TODO: user id
+            pthread_mutex_unlock(&recvMutex);
+            break;
+        case SIGNAL_FM_REQ_FACE_ADD:
+        {
+            std::cout << "SIGNAL_FM_REQ_FACE_ADD" << endl;
+            pthread_mutex_lock(&recvMutex);
+            commandQueue.push(std::make_pair(Command::ADD_FACE, 11));
+            pthread_mutex_unlock(&recvMutex);
+            break;
+        }
+        case SIGNAL_FM_REQ_FACE_DELETE:
+            std::cout << "SIGNAL_FM_REQ_FACE_DELETE" << std::endl;
+            break;
+            //case SIGNAL_FM_REQ_LOGIN:
+            //{
+            //	std::cout << "SIGNAL_FM_REQ_LOGIN" << std::endl;
+            //	 TODO: get login data from payload
+            //	string userid, passwd;
+            //	bool loginResult = userAuthManager->verifyUser(userid, passwd);
+            //	std::cout << "login result : " << loginResult << endl;
+            //	break;
+            //}
 
-			// pthread_mutex_lock(&sendMutex);
-			// if (sendCmd(connection, SIGNAL_FM_RESP_GET_FACES) < 0)
-			// {
-			// 	std::cout << "failed to send command" << endl;
-			// }
-
-			// if (TcpSendImageAsJpeg(connection, face) < 0)
-			// {
-			// 	cout << "SendImage Failed" << endl;
-			// }
-			// pthread_mutex_unlock(&sendMutex);
-			break;
-		}
-		case SIGNAL_FM_REQ_FACE_DELETE:
-			std::cout << "SIGNAL_FM_REQ_FACE_DELETE" << std::endl;
-			break;
-			//case SIGNAL_FM_REQ_LOGIN:
-			//{
-			//	std::cout << "SIGNAL_FM_REQ_LOGIN" << std::endl;
-			//	 TODO: get login data from payload
-			//	string userid, passwd;
-			//	bool loginResult = userAuthManager->verifyUser(userid, passwd);
-			//	std::cout << "login result : " << loginResult << endl;
-			//	break;
-			//}
-
-		default:
-			break;
-		}
-	}
-	return;
+        default:
+            break;
+        }
+    }
+    return;
 }
 
 bool CommManager::sendCommand(int cmd)
@@ -263,7 +298,8 @@ bool CommManager::sendCommand(int cmd)
     payload.data_length = 0;
 
     int ret = TcpSendCommand(TcpConnectedPort, &payload);
-    if (ret < 0) {
+    if (ret < 0)
+    {
         std::cout << "failed to send command" << endl;
         return false;
     }

@@ -172,6 +172,22 @@ bool FaceManager::registerFace()
     return true;
 }
 
+void FaceManager::sendFaceImages(int userId)
+{
+    // TODO: read user's images
+    std::vector<struct Paths> paths;
+    cv::Mat image;
+    getFilePaths("../imgs", paths);
+    int len = paths.size();
+    if (len > 5) len = 5;
+    for (int i = 0; i < len; i++)
+    {
+        std::cout << "loading " << i << " " << paths[i].absPath << std::endl;
+        loadInputImage(paths[i].absPath, image, videoFrameWidth, videoFrameHeight);
+        commManager->sendRegisteredFace(image);
+    }
+}
+
 void FaceManager::stop()
 {
 }
