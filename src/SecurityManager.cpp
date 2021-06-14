@@ -15,6 +15,8 @@
 #include <openssl/pem.h>
 #include <openssl/cms.h>
 
+#include <openssl/ssl.h>
+
 const std::string SecurityManager::pathVideoDB = "videodb.bin";
 const std::string SecurityManager::pathVideoDBSign = "videodb.sign";
 const std::string SecurityManager::pathUserDB = "userdb.bin";
@@ -423,8 +425,11 @@ int SecurityManager::readVideoDB(unsigned char* buffer, size_t bufferSize, size_
     std::cout << "videodbsign len:" << dbsign.size() << " hex:" << GetHexString(dbsign.substr(0, std::min((int)dbsign.size(), 32))) << std::endl;
 
     std::string &rootca = certificate["rootca"];
-    std::string &cipherkey = symmetricKey["videodb"];
-    std::string &cipheriv = iv["videodb"];
+    if (dbenc.size() == 0 || dbsign.size() == 0 || rootca.size() == 0) {
+        *readLen = 0;
+        return -3;
+    }
+
     int ret = cmsVerify(dbsign, dbenc, rootca);
     if(ret != 1) { 
         std::cout << "videodb verify failed!!!" << std::endl;
@@ -432,6 +437,8 @@ int SecurityManager::readVideoDB(unsigned char* buffer, size_t bufferSize, size_
     }
     std::cout << "videodb verify ok" << std::endl;
 
+    std::string &cipherkey = symmetricKey["videodb"];
+    std::string &cipheriv = iv["videodb"];
     int len = decrypt_aes128cbc(dbenc.c_str(), dbenc.size(), cipherkey.c_str(), cipheriv.c_str(), buffer);
     if (len == 0) { return -2; }
     else { *readLen = len; }
@@ -448,8 +455,11 @@ int SecurityManager::readFaceDB(unsigned char* buffer, size_t bufferSize, size_t
     std::cout << "facedbsign len:" << dbsign.size() << " hex:" << GetHexString(dbsign.substr(0, std::min((int)dbsign.size(), 32))) << std::endl;
 
     std::string &rootca = certificate["rootca"];
-    std::string &cipherkey = symmetricKey["facedb"];
-    std::string &cipheriv = iv["facedb"];
+    if (dbenc.size() == 0 || dbsign.size() == 0 || rootca.size() == 0) {
+        *readLen = 0;
+        return -3;
+    }
+
     int ret = cmsVerify(dbsign, dbenc, rootca);
     if(ret != 1) { 
         std::cout << "facedb verify failed!!!" << std::endl;
@@ -457,6 +467,8 @@ int SecurityManager::readFaceDB(unsigned char* buffer, size_t bufferSize, size_t
     }
     std::cout << "facedb verify ok" << std::endl;
 
+    std::string &cipherkey = symmetricKey["facedb"];
+    std::string &cipheriv = iv["facedb"];
     int len = decrypt_aes128cbc(dbenc.c_str(), dbenc.size(), cipherkey.c_str(), cipheriv.c_str(), buffer);
     if (len == 0) { return -2; }
     else { *readLen = len; }
@@ -473,8 +485,10 @@ int SecurityManager::readUserDB(unsigned char* buffer, size_t bufferSize, size_t
     std::cout << "userdbsign len:" << dbsign.size() << " hex:" << GetHexString(dbsign.substr(0, std::min((int)dbsign.size(), 32))) << std::endl;
 
     std::string &rootca = certificate["rootca"];
-    std::string &cipherkey = symmetricKey["userdb"];
-    std::string &cipheriv = iv["userdb"];
+    if (dbenc.size() == 0 || dbsign.size() == 0 || rootca.size() == 0) {
+        *readLen = 0;
+        return -3;
+    }
     int ret = cmsVerify(dbsign, dbenc, rootca);
     if(ret != 1) { 
         std::cout << "userdb verify failed!!!" << std::endl;
@@ -482,6 +496,8 @@ int SecurityManager::readUserDB(unsigned char* buffer, size_t bufferSize, size_t
     }
     std::cout << "userdb verify ok" << std::endl;
 
+    std::string &cipherkey = symmetricKey["userdb"];
+    std::string &cipheriv = iv["userdb"];
     int len = decrypt_aes128cbc(dbenc.c_str(), dbenc.size(), cipherkey.c_str(), cipheriv.c_str(), buffer);
     if (len == 0) { return -2; }
     else { *readLen = len; }
@@ -497,6 +513,53 @@ int SecurityManager::readEngine(unsigned char* buffer, size_t bufferSize, size_t
 int SecurityManager::makeHash(unsigned char* buffer, size_t bufferSize, unsigned char* out, size_t* outLen) {
     *outLen = SHA256_DIGEST_LENGTH;
     sha256_evp(buffer, out, bufferSize);
+    return 0;
+}
+
+void* SecurityManager::getSecureNeworkContext() {
+    const SSL_METHOD* meth = TLS_server_method();
+    SSL_CTX* ctx = SSL_CTX_new(meth);
+    const char* cipher_list = "TLS_AES_128_GCM_SHA256";
+
+    if (1 != SSL_CTX_set_cipher_list(ctx, cipher_list)) {
+        SSL_CTX_free(ctx);
+        return nullptr;
+    }
+    if (1 != SSL_CTX_set_min_proto_version(ctx, TLS1_3_VERSION)) {
+        SSL_CTX_free(ctx);
+        return nullptr;
+    }
+    if (1 != SSL_CTX_use_certificate_chain_file(ctx, "../server.crt")) {
+        SSL_CTX_free(ctx);
+        return nullptr;
+    }
+    if (1 != SSL_CTX_use_PrivateKey_file(ctx, "../server.key", SSL_FILETYPE_PEM)) {
+        SSL_CTX_free(ctx);
+        return nullptr;
+    }
+    if (1 != SSL_CTX_load_verify_locations(ctx, "../rootca.crt", NULL)) {
+        SSL_CTX_free(ctx);
+        return nullptr;
+    }
+    if (1 != SSL_CTX_check_private_key(ctx)) {
+        SSL_CTX_free(ctx);
+        return nullptr;
+    }
+    int mode = SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT | SSL_VERIFY_CLIENT_ONCE;
+    SSL_CTX_set_verify(ctx, mode, NULL);
+    SSL_CTX_set_verify_depth(ctx, 1);
+    SSL* ssl = SSL_new(ctx); 
+    if (ssl == NULL) {
+        SSL_CTX_free(ctx);
+        return nullptr;
+    }
+    secureNetworkContext = reinterpret_cast<void*>(ctx);
+    return reinterpret_cast<void*>(ssl);
+}
+
+int SecurityManager::freeSecureNetworkContext(void* p) {
+    SSL_free(reinterpret_cast<SSL*>(p));
+    SSL_CTX_free(reinterpret_cast<SSL_CTX*>(secureNetworkContext));
     return 0;
 }
 

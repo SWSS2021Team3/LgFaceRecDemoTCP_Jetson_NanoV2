@@ -34,7 +34,11 @@ class SecurityManager
 
     int makeHash(unsigned char* buffer, size_t bufferSize, unsigned char* out, size_t* outLen);
 
+    void* getSecureNeworkContext();
+    int freeSecureNetworkContext(void* p);
+
   private:
+    void* secureNetworkContext;
     static const std::string pathVideoDB;
     static const std::string pathVideoDBSign;
     static const std::string pathUserDB;
