@@ -1,9 +1,10 @@
 
 #include <string>
+#include "SecurityManager.h"
 
 #define NUM_STUDENTS 8
 #define LIMIT_ID_LENGTH 20
-#define LIMIT_PW_LENGTH 128
+#define LIMIT_PW_LENGTH 32
 
 struct UserData {
     std::string userID;
@@ -26,4 +27,5 @@ private:
 
     bool mIsFound;
     struct UserData mCurrentUserData;
+    SecurityManager* mSecurityManager;
 };

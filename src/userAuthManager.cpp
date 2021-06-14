@@ -20,11 +20,15 @@ struct UserData UserDB[NUM_STUDENTS] = {
 
 UserAuthManager::UserAuthManager() {
     resetCurrentUser();
+    mSecurityManager = new SecurityManager();
     loadUserDB();
 }
 
 UserAuthManager::~UserAuthManager() {
     resetCurrentUser();
+    if (mSecurityManager != NULL) {
+        delete mSecurityManager;
+    }
 }
 
 void UserAuthManager::resetCurrentUser() {
@@ -36,8 +40,14 @@ void UserAuthManager::resetCurrentUser() {
 
 void UserAuthManager::loadUserDB() {
     unsigned char* readData = NULL;
-    // TODO: load UserDB from Security Manager
-
+    size_t readSize;
+    size_t readLen;
+    // TODO: calculate readSize
+    int ret = mSecurityManager->readUserDB(readData, readSize, &readLen);
+    if (ret < 0) {
+        cout << "failed to read UserDB" << endl;
+        return;
+    }
 
     if (readData == NULL) {
         cout << "[ERR] failed to load UserDB" << endl;
@@ -53,9 +63,14 @@ void UserAuthManager::loadUserDB() {
 
 int UserAuthManager::saveUserDB() {
 	unsigned char* saveData = (unsigned char*)UserDB;
+    size_t dataSize = strlen((const char*)saveData);
+    size_t writeLen;
     int ret = -1;
 
-    // TODO: transfer UserDB to Security Manager
+    cout << "dataSize = " << dataSize << endl;
+
+    // TODO: verify dataSize
+    ret = mSecurityManager->writeUserDB(saveData, dataSize, &writeLen);
 
 	return ret;
 }
