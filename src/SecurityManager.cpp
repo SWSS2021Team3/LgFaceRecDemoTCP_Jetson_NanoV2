@@ -495,7 +495,8 @@ int SecurityManager::readEngine(unsigned char* buffer, size_t bufferSize, size_t
 }
 
 int SecurityManager::makeHash(unsigned char* buffer, size_t bufferSize, unsigned char* out, size_t* outLen) {
-    //openssl sha256 *.engine
+    *outLen = SHA256_DIGEST_LENGTH;
+    sha256_evp(buffer, out, bufferSize);
     return 0;
 }
 
