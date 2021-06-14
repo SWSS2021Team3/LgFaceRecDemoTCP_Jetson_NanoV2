@@ -8,12 +8,12 @@ int TcpSendCommand(TTcpConnectedPort * TcpConnectedPort, Payload* payload)
     if (payload == NULL) {
       return -1;
     }
-	unsigned int payloadSize = sizeof(payload);
+	unsigned int payloadSize = sizeof(Payload);
     payloadSize = htonl(payloadSize);
     if (WriteDataTcp(TcpConnectedPort,(unsigned char *)&payloadSize,sizeof(payloadSize))!=sizeof(payloadSize)) {
       return(-1);
     }
-    return(WriteDataTcp(TcpConnectedPort,(unsigned char *)payload, sizeof(payload)));
+    return(WriteDataTcp(TcpConnectedPort,(unsigned char *)payload, sizeof(Payload)));
 }
 
 
