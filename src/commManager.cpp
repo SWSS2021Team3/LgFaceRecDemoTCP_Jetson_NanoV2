@@ -198,8 +198,7 @@ bool CommManager::do_loop(FaceManager *faceManager)
             {
                 std::cout << "get-face" << std::endl;
                 // int uid = param;
-                faceManager->sendFaceImages("2");
-                faceManager->getFaceListFromDB("2");
+                faceManager->sendFaceImages("1"/*to_string(uid)*/);
                 break;
             }
             case Command::ADD_FACE:

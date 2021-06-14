@@ -43,11 +43,12 @@ void UserAuthManager::loadUserDB() {
     size_t readSize;
     size_t readLen;
     // TODO: calculate readSize
+    /*
     int ret = mSecurityManager->readUserDB(readData, readSize, &readLen);
     if (ret < 0) {
         cout << "failed to read UserDB" << endl;
         return;
-    }
+    }*/
 
     if (readData == NULL) {
         cout << "[ERR] failed to load UserDB" << endl;
