@@ -318,6 +318,7 @@ bool CommManager::do_loop(FaceManager *faceManager)
             {
             case Command::GET_FACES:
             {
+                // TODO: get uid from payload
                 std::cout << "get-face" << std::endl;
                 // int uid = param;
                 faceManager->sendFaceImages("1" /*to_string(uid)*/);
@@ -325,8 +326,8 @@ bool CommManager::do_loop(FaceManager *faceManager)
             }
             case Command::ADD_FACE:
             {
-                // TODO: get num of pictures from payload
-                if (!faceManager->registerFace(5))
+                // TODO: get uid/num of pictures from payload
+                if (!faceManager->registerFace("1"/*to_string(uid)*/,1/*number_of_faces*/))
                 {
                     std::cout << "[ERR] failed to register face" << endl;
                 }

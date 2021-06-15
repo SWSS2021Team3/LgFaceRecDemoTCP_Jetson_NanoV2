@@ -209,6 +209,11 @@ bool FaceManager::registerFace(int numberOfImages)
 
         if (!commManager->sendFace(croppedFace))
             return false;
+
+        //TODO : Add facelist to user(userId) : check
+        string faceId = "myface";
+        if (!addFaceDB(userId,faceId))
+            return false;
         
         frame.release();
         croppedFace.release();
@@ -250,21 +255,100 @@ bool FaceManager::deleteFaceDB(string userId, string faceId)
 {
     std::cout << "deleteFace: " << userId << " / " << faceId << endl;
     // TODO
-    // 1.delete face DB
+    // 1.delete facelist and update DB
     // uid -> student name
+    string temp_line;
+    vector<faceData> v_fd = readFaceDB();
+    ifstream face_db_read("./facelist_read");
+    ofstream face_db_write("./facelist_write", ios_base::app);
+    size_t pos = 0;
+    while(face_db_read.good())
+    {
+        getline(face_db_read, temp_line);
+        if(temp_line.size() == 0)
+            break;
+        // face_db_write << temp_line;
+        if(pos = temp_line.find(userId) != std::string::npos)
+        {
+            std::cout << "Find userId : " << userId << endl;
+            if(pos = temp_line.find(faceId) != std::string::npos)
+            {
+                std::cout << "Delte faceId : " << faceId << endl;
+                temp_line.erase(pos-1, faceId.size()+1);    //Delete with white_space(ex. " abc")
+            }
+            // face_db_write << " ";
+            // face_db_write.write(faceId.c_str(),faceId.size());
+        }
+        face_db_write << temp_line;
+        face_db_write << "\n";
+    }
+    face_db_read.close();
+    face_db_write.close();
 
-    // 2.update AI handler
+    for(int i=0; i<v_fd.size(); i++)    //for debug
+    {
+        if(!strncmp(v_fd[i].userID.c_str(), userId.c_str(), userId.size()))
+        {
+            std::cout << "Found Face List and add face list" << endl;
+            v_fd[i].faceNumber.push_back(faceId);
+            for(int j=0; j<v_fd[i].faceNumber.size(); j++)
+            {
+                std::cout << "List : " << v_fd[i].faceNumber[j] << endl;
+            }
+            return true;
+        }
+    }
+    return false;
+    // TODO : update AI handler
+    // TODO : write data to db file
+    // 2.update(reload) FaceManager (AI handler)
     return true;
 }
 
-bool FaceManager::addFaceDB(string userId, string faceid)
+bool FaceManager::addFaceDB(string userId, string faceId)
 {
-    std::cout << "addFaceDB: " << userId << " / " << faceid << endl;
+    std::cout << "addFaceDB: " << userId << " / " << faceId << endl;
     // TODO
-    // 1.delete face DB
+    // 1.add FaceList and update DB
     // uid -> student name
+    string temp_line;
+    vector<faceData> v_fd = readFaceDB();
+    ifstream face_db_read("./facelist_read");
+    ofstream face_db_write("./facelist_write", ios_base::app);
+    size_t pos = 0;
+    while(face_db_read.good())
+    {
+        getline(face_db_read, temp_line);
+        if(temp_line.size() == 0)
+            break;
+        face_db_write << temp_line;
+        if(pos = temp_line.find(userId) != std::string::npos)
+        {
+            std::cout << "Find userId : " << userId << " Add : " << faceId << endl;
+            face_db_write << " ";
+            face_db_write.write(faceId.c_str(),faceId.size());
+        }
+        face_db_write << "\n";
+    }
+    face_db_read.close();
+    face_db_write.close();
 
-    // 2.update AI handler
+    for(int i=0; i<v_fd.size(); i++)    //for debug
+    {
+        if(!strncmp(v_fd[i].userID.c_str(), userId.c_str(), userId.size()))
+        {
+            std::cout << "Found Face List and add face list" << endl;
+            v_fd[i].faceNumber.push_back(faceId);
+            for(int j=0; j<v_fd[i].faceNumber.size(); j++)
+            {
+                std::cout << "List : " << v_fd[i].faceNumber[j] << endl;
+            }
+            return true;
+        }
+    }
+    return false;
+    // TODO : update(reload) AI handler
+    // TODO : write data to db file
     return true;
 }
 
@@ -311,13 +395,15 @@ vector<faceData> FaceManager::readFaceDB()
     string temp_uid;
     string temp_vid;
     
-    ifstream video_db("./videolist");
-    while(video_db.good())
+    ifstream face_db("./facelist"); //TODO : read from facedb
+    ofstream face_list("./facelist_read",ios_base::app);
+    while(face_db.good())
     {
-        getline(video_db, temp_line);
+        getline(face_db, temp_line);
         if(temp_line.size() == 0)
-        break;
-        
+            break;
+        face_list << temp_line;
+        face_list << "\n";  //Add new line
         std::string delimiter = " ";
         size_t pos = 0;
         bool is_uid = true;
@@ -344,6 +430,7 @@ vector<faceData> FaceManager::readFaceDB()
         _facelist.push_back(fd);
         fd.faceNumber.clear();
     }
-    video_db.close();
+    face_db.close();
+    face_list.close();
     return _facelist;
 }
