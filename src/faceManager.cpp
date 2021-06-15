@@ -108,6 +108,8 @@ bool FaceManager::processFrame()
     cv::Mat dst_img;
     std::vector<struct Bbox> outputBbox;
 
+    if (!isVideoPlay) return true;
+
     videoStreamer->getFrame(frame);
     if (frame.empty())
     {
@@ -116,6 +118,7 @@ bool FaceManager::processFrame()
                   << std::endl;
         return false;
     }
+
     // Create a destination to paint the source into.
     dst_img.create(frame.size(), frame.type());
 
@@ -144,6 +147,14 @@ bool FaceManager::processFrame()
     // frame.release();
 
     return true;
+}
+
+void FaceManager::playVideo(std::string status)
+{
+    if (status == "start")
+        isVideoPlay = true;
+    else
+        isVideoPlay = false;
 }
 
 bool FaceManager::registerFace(int numberOfImages)

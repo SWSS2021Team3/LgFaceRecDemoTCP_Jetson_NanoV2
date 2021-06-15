@@ -33,6 +33,8 @@ private:
 
     int mCurrentUid;
 
+    bool isVideoPlay = false;
+
     void rotateFrame(cv::Mat &frame);
     void openRecordFile(const char *filename);
     void record(cv::Mat &frame);
@@ -45,6 +47,7 @@ public:
     void start();
     bool processFrame();
     bool registerFace(int numberOfFaces);
+    void playVideo(string status);
     void stop();
     bool deleteFaceDB(string userId, string faceId);
     bool addFaceDB(string userId, string faceId);

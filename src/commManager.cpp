@@ -276,14 +276,10 @@ bool CommManager::do_loop(FaceManager *faceManager)
 
     while (true)
     {
-        // if (cnt == 1000000) std::cout << "start processFrame" << std::endl;
-        // if (cnt > 1000000)
-        // {
-        //     if (!faceManager->processFrame())
-        //         break;
-        // }
-
-        // nbFrames++;
+        if (!faceManager->processFrame())
+        {
+            continue;
+        }
 
         if (kbhit())
         {
@@ -345,20 +341,26 @@ bool CommManager::do_loop(FaceManager *faceManager)
                 }
                 break;
             }
+            case Command::VIDEO:
+            {
+                std::cout << "control VIDEO " << cmdMsg.param << std::endl;
+                faceManager->playVideo(cmdMsg.param);
+                break;
+            }
             default:
                 break;
             }
         }
         pthread_mutex_unlock(&recvMutex);
 
-        pthread_mutex_lock(&sendMutex);
-        if (!sendCommand(SIGNAL_FM_BASE)) // PING
-        {
-            std::cout << " failed to send command" << endl;
-            pthread_mutex_unlock(&sendMutex);
-            break;
-        }
-        pthread_mutex_unlock(&sendMutex);
+        // pthread_mutex_lock(&sendMutex);
+        // if (!sendCommand(SIGNAL_FM_BASE)) // PING
+        // {
+        //     std::cout << " failed to send command" << endl;
+        //     pthread_mutex_unlock(&sendMutex);
+        //     break;
+        // }
+        // pthread_mutex_unlock(&sendMutex);
 #ifdef LOG_TIMES
         // std::cout << "mtCNN took " << std::chrono::duration_cast<chrono::milliseconds>(endMTCNN - startMTCNN).count() << "ms\n";
         // std::cout << "Forward took " << std::chrono::duration_cast<chrono::milliseconds>(endForward - startForward).count() << "ms\n";
@@ -456,6 +458,22 @@ void CommManager::receive()
             // TODO: get userid, password from payload
 
             commandQueue.push(CommandMessage(Command::LOGIN, userid, password));
+            pthread_mutex_unlock(&recvMutex);
+            break;
+        }
+        case SIGNAL_FM_REQ_VIDEO_START:
+        {
+            std::cout << "SIGNAL_FM_REQ_VIDEO_START" << endl;
+            pthread_mutex_lock(&recvMutex);
+            commandQueue.push(CommandMessage(Command::VIDEO, "start"));
+            pthread_mutex_unlock(&recvMutex);
+            break;
+        }
+        case SIGNAL_FM_REQ_VIDEO_END:
+        {
+            std::cout << "SIGNAL_FM_REQ_VIDEO_END" << endl;
+            pthread_mutex_lock(&recvMutex);
+            commandQueue.push(CommandMessage(Command::VIDEO, "end"));
             pthread_mutex_unlock(&recvMutex);
             break;
         }
