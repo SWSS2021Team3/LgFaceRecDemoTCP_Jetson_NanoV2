@@ -9,6 +9,8 @@
 #include <termios.h>
 #include <pthread.h>
 
+void *listenFunc(void *arg);
+void *listenSecureFunc(void *arg);
 void *receiverFunc(void *arg);
 
 int kbhit()
@@ -33,32 +35,138 @@ int getch()
         return c;
     }
 }
+CommManager::CommManager(int _port, int _securePort) : port(_port), securePort(_securePort), isConnected(false)
+{
+    pthread_mutex_init(&sendMutex, NULL);
+    pthread_mutex_init(&recvMutex, NULL);
 
-bool CommManager::connect()
+    pthread_mutex_init(&listenMutex, NULL);
+    pthread_cond_init(&startConnect, NULL);
+    pthread_cond_init(&connectedCond, NULL);
+
+    openPort();
+
+}
+
+CommManager::~CommManager()
+{    
+    pthread_cancel(tidListen1);
+    pthread_cancel(tidListen2);
+
+    if (TcpListenPort != NULL)
+    {
+        CloseTcpListenPort(&TcpListenPort); // Close listen port
+        TcpListenPort = NULL;
+    }
+    if (TcpListenPortSecured != NULL)
+    {
+        CloseTcpListenPort(&TcpListenPortSecured);
+        TcpListenPortSecured = NULL;
+    }    
+}
+
+int CommManager::openPort()
+{
+    if ((TcpListenPort = OpenTcpListenPort(port)) == NULL) // Open TCP Network port
+    {
+        printf("OpenTcpListenPortFailed\n");
+        return -1;
+    }
+
+    if ((TcpListenPortSecured = OpenTcpListenPort(securePort)) == NULL) // Open TCP Network port
+    {
+        printf("OpenTcpListenPortFailed2\n");
+        return -1;
+    }
+
+    int status;
+
+    if ((status = pthread_create(&tidListen1, NULL, &listenFunc, (void *)this)) != 0)
+    {
+        std::cout << "thread1 create error" << std::endl;
+        return -1;
+    }
+    if ((status = pthread_create(&tidListen2, NULL, &listenSecureFunc, (void *)this)) != 0)
+    {
+        std::cout << "thread2 create error" << std::endl;
+        return -1;
+    }        
+}
+
+bool CommManager::listen()
+{
+    pthread_mutex_lock(&listenMutex);
+    pthread_cond_broadcast(&startConnect);
+    pthread_mutex_unlock(&listenMutex);
+
+
+    pthread_mutex_lock(&listenMutex);
+    pthread_cond_wait(&connectedCond, &listenMutex);
+    pthread_mutex_unlock(&listenMutex);
+
+    printf(" Accepted connection Request\n");
+
+    return true;
+}
+
+void CommManager::accept()
 {
     struct sockaddr_in cli_addr;
 
     socklen_t clilen;
 
-    if ((TcpListenPort = OpenTcpListenPort(port)) == NULL) // Open TCP Network port
+    while(true)
     {
-        printf("OpenTcpListenPortFailed\n");
-        return false;
+        pthread_mutex_lock(&listenMutex);
+        pthread_cond_wait(&startConnect, &listenMutex);
+        pthread_mutex_unlock(&listenMutex);
+
+        clilen = sizeof(cli_addr);
+
+        printf("Listening for connections\n");
+
+        if ((TcpConnectedPort = AcceptTcpConnection(TcpListenPort, &cli_addr, &clilen)) == NULL)
+        {
+            printf("AcceptTcpConnection Failed\n");
+            continue;
+        }
+
+        pthread_mutex_lock(&listenMutex);
+        pthread_cond_broadcast(&connectedCond);
+        pthread_mutex_unlock(&listenMutex);
+
+        printf("Accepted connection Request\n");
     }
+}
 
-    clilen = sizeof(cli_addr);
+void CommManager::acceptSecure()
+{
+    struct sockaddr_in cli_addr;
 
-    printf("Listening for connections\n");
+    socklen_t clilen;
 
-    if ((TcpConnectedPort = AcceptTcpConnection(TcpListenPort, &cli_addr, &clilen)) == NULL)
+    while(true)
     {
-        printf("AcceptTcpConnection Failed\n");
-        return false;
+        pthread_mutex_lock(&listenMutex);
+        pthread_cond_wait(&startConnect, &listenMutex);
+        pthread_mutex_unlock(&listenMutex);
+
+        clilen = sizeof(cli_addr);
+
+        printf("Listening for connections2\n");
+
+        if ((TcpConnectedPort = AcceptTcpConnection(TcpListenPortSecured, &cli_addr, &clilen)) == NULL)
+        {
+            printf("AcceptTcpConnection Failed2\n");
+            continue;
+        }
+
+        pthread_mutex_lock(&listenMutex);
+        pthread_cond_broadcast(&connectedCond);
+        pthread_mutex_unlock(&listenMutex);
+
+        printf("Accepted connection Request2\n");
     }
-
-    printf("Accepted connection Request\n");
-
-    return true;
 }
 
 bool CommManager::sendMessage()
@@ -122,13 +230,18 @@ bool CommManager::sendLoginResp(bool result_ok)
 {
     pthread_mutex_lock(&sendMutex);
 
-    if (result_ok) {
-        if (!sendCommand(SIGNAL_FM_RESP_LOGIN_OK)) {
+    if (result_ok)
+    {
+        if (!sendCommand(SIGNAL_FM_RESP_LOGIN_OK))
+        {
             pthread_mutex_unlock(&sendMutex);
             return false;
         }
-    } else {
-        if (!sendCommand(SIGNAL_FM_RESP_LOGIN_FAILED)) {
+    }
+    else
+    {
+        if (!sendCommand(SIGNAL_FM_RESP_LOGIN_FAILED))
+        {
             pthread_mutex_unlock(&sendMutex);
             return false;
         }
@@ -141,7 +254,6 @@ bool CommManager::sendLoginResp(bool result_ok)
 void CommManager::disconnect()
 {
     CloseTcpConnectedPort(&TcpConnectedPort); // Close network port;
-    CloseTcpListenPort(&TcpListenPort);       // Close listen port
 }
 
 bool CommManager::do_loop(FaceManager *faceManager)
@@ -150,7 +262,7 @@ bool CommManager::do_loop(FaceManager *faceManager)
     int nbFrames = 0;
     auto globalTimeStart = chrono::steady_clock::now();
     Payload *payload = NULL;
-    UserAuthManager* userAuthManager = new UserAuthManager();
+    UserAuthManager *userAuthManager = new UserAuthManager();
 
     lFaceManager = faceManager;
     int status;
@@ -158,7 +270,7 @@ bool CommManager::do_loop(FaceManager *faceManager)
     if ((status = pthread_create(&tid, NULL, &receiverFunc, (void *)this)) != 0)
     {
         std::cout << "thread create error" << std::endl;
-        return (-1);
+        return false;
     }
     long cnt = 0;
 
@@ -198,7 +310,7 @@ bool CommManager::do_loop(FaceManager *faceManager)
             {
                 std::cout << "get-face" << std::endl;
                 // int uid = param;
-                faceManager->sendFaceImages("1"/*to_string(uid)*/);
+                faceManager->sendFaceImages("1" /*to_string(uid)*/);
                 break;
             }
             case Command::ADD_FACE:
@@ -220,10 +332,13 @@ bool CommManager::do_loop(FaceManager *faceManager)
 
                 // send response payload with login result
                 int uid = userAuthManager->getCurrentUid();
-                if (uid < 0) {
+                if (uid < 0)
+                {
                     std::cout << "failed to get user id from database" << endl;
                     sendLoginResp(false);
-                } else {
+                }
+                else
+                {
                     // set uid to faceManager here
                     faceManager->setCurrentUid(to_string(uid));
                     sendLoginResp(true);
@@ -266,6 +381,24 @@ bool CommManager::do_loop(FaceManager *faceManager)
     return true;
 }
 
+void *listenFunc(void *arg)
+{
+    CommManager *commManager = (CommManager *)arg;
+
+    commManager->accept();
+
+    return NULL;
+}
+
+void *listenSecureFunc(void *arg)
+{
+    CommManager *commManager = (CommManager *)arg;
+
+    commManager->acceptSecure();
+
+    return NULL;
+}
+
 void *receiverFunc(void *arg)
 {
     CommManager *commManager = (CommManager *)arg;
@@ -274,6 +407,7 @@ void *receiverFunc(void *arg)
 
     return NULL;
 }
+
 
 void CommManager::receive()
 {
@@ -300,7 +434,7 @@ void CommManager::receive()
         case SIGNAL_FM_REQ_GET_FACES:
             std::cout << "SIGNAL_FM_REQ_GET_FACES" << endl;
             pthread_mutex_lock(&recvMutex);
-            commandQueue.push(CommandMessage(Command::GET_FACES, 11));  // TODO: user id
+            commandQueue.push(CommandMessage(Command::GET_FACES, 11)); // TODO: user id
             pthread_mutex_unlock(&recvMutex);
             break;
         case SIGNAL_FM_REQ_FACE_ADD:

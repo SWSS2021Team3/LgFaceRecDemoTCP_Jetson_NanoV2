@@ -23,7 +23,8 @@ int main(int argc, char *argv[])
   }
 
   int portNumber = atoi(argv[1]);
-  commManager = new CommManager(portNumber);
+  int portNumberSecured = 6000;
+  commManager = new CommManager(portNumber, portNumberSecured);
 
   if (argc == 2)
     faceManager = new FaceManager(commManager);
@@ -34,13 +35,12 @@ int main(int argc, char *argv[])
     return 1;
 
   bool inLoop = true;
-
   while (inLoop)
   {
-    if (commManager->connect() == false)
+    if (commManager->listen() == false)
     {
       printf("CommManager - connect failed.\n");
-      return (-1);
+      continue;
     }
 
     faceManager->start();

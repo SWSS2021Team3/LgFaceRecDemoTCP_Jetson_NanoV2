@@ -35,7 +35,17 @@ class CommManager
 {
 private:
     int port;
-    TTcpListenPort *TcpListenPort;
+    int securePort;
+    TTcpListenPort *TcpListenPort = NULL;
+    TTcpListenPort *TcpListenPortSecured = NULL;
+
+    pthread_mutex_t listenMutex;
+    pthread_cond_t startConnect;
+    pthread_cond_t connectedCond;
+    pthread_t tidListen1;
+    pthread_t tidListen2;
+    bool isConnected;
+
     TTcpConnectedPort *TcpConnectedPort;
     pthread_mutex_t sendMutex;
 
@@ -43,13 +53,16 @@ private:
     pthread_mutex_t recvMutex;
     std::queue<CommandMessage> commandQueue;
 
+    int openPort();
+
 public:
-    CommManager(int _port) : port(_port)
-    {
-        pthread_mutex_init(&sendMutex, NULL);
-        pthread_mutex_init(&recvMutex, NULL);
-    }
+    CommManager(int _port, int _securePort);
+    ~CommManager();
+    bool open();
+    bool listen();
     bool connect();
+    void accept();
+    void acceptSecure();
     void disconnect();
     bool sendFace(cv::Mat &frame);
     bool sendFrame(cv::Mat &frame);
