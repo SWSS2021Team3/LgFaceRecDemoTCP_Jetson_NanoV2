@@ -11,6 +11,7 @@
 #include "Payload.h"
 
 class FaceManager;
+class SecurityManager;
 
 enum class Command
 {
@@ -54,13 +55,14 @@ private:
     pthread_mutex_t sendMutex;
 
     FaceManager* lFaceManager;
+    SecurityManager* lSecurityManager;
     pthread_mutex_t recvMutex;
     std::queue<CommandMessage> commandQueue;
 
     int openPort();
 
 public:
-    CommManager(int _port, int _securePort);
+    CommManager(int _port, int _securePort, SecurityManager *securityManager);
     ~CommManager();
     bool open();
     bool listen();

@@ -1,4 +1,5 @@
 #include "userAuthManager.h"
+#include "SecurityManager.h"
 #include <iostream>
 #include <cstring>
 
@@ -16,18 +17,18 @@ struct UserData UserDB[NUM_STUDENTS] = {
 };
 
 
-UserAuthManager::UserAuthManager() {
+UserAuthManager::UserAuthManager(SecurityManager* securityManager) : mSecurityManager(securityManager) {
     resetCurrentUser();
-    mSecurityManager = new SecurityManager();
+//    mSecurityManager = new SecurityManager();
 //    loadUserDB();
 }
 
 UserAuthManager::~UserAuthManager() {
 //    saveUserDB();
     resetCurrentUser();
-    if (mSecurityManager != NULL) {
-        delete mSecurityManager;
-    }
+    // if (mSecurityManager != NULL) {
+    //     delete mSecurityManager;
+    // }
 }
 
 void UserAuthManager::resetCurrentUser() {

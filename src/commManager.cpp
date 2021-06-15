@@ -5,6 +5,7 @@
 #include "commManager.h"
 #include "faceManager.h"
 #include "userAuthManager.h"
+#include "SecurityManager.h"
 
 #include <termios.h>
 #include <pthread.h>
@@ -35,8 +36,9 @@ int getch()
         return c;
     }
 }
-CommManager::CommManager(int _port, int _securePort) : port(_port), securePort(_securePort), isConnected(false)
+CommManager::CommManager(int _port, int _securePort, SecurityManager *securityManager) : port(_port), securePort(_securePort), isConnected(false)
 {
+    lSecurityManager = securityManager;
     pthread_mutex_init(&sendMutex, NULL);
     pthread_mutex_init(&recvMutex, NULL);
 
@@ -130,6 +132,7 @@ void CommManager::accept()
             printf("AcceptTcpConnection Failed\n");
             continue;
         }
+        
 
         pthread_mutex_lock(&listenMutex);
         pthread_cond_broadcast(&connectedCond);
@@ -160,6 +163,12 @@ void CommManager::acceptSecure()
             printf("AcceptTcpConnection Failed2\n");
             continue;
         }
+        //make secure connection
+        if (TcpConnectedPort->ssl == nullptr) {
+            TcpConnectedPort->ssl = lSecurityManager->getSecureNeworkContext();
+        }
+        TcpConnectedPort->secureMode = true;
+        lSecurityManager->setSecureNetwork(TcpConnectedPort->ssl, TcpConnectedPort->ConnectedFd);
 
         pthread_mutex_lock(&listenMutex);
         pthread_cond_broadcast(&connectedCond);
@@ -267,6 +276,9 @@ bool CommManager::sendLoginResp(bool result_ok)
 
 void CommManager::disconnect()
 {
+    //lSecurityManager->resetSecureNetwork(TcpConnectedPort->ssl);
+    lSecurityManager->shutdownSecureNetwork(TcpConnectedPort->ssl);
+    lSecurityManager->freeSecureNetworkContext(TcpConnectedPort->ssl);
     CloseTcpConnectedPort(&TcpConnectedPort); // Close network port;
 }
 
@@ -276,7 +288,7 @@ bool CommManager::do_loop(FaceManager *faceManager)
     int nbFrames = 0;
     auto globalTimeStart = chrono::steady_clock::now();
     Payload *payload = NULL;
-    UserAuthManager *userAuthManager = new UserAuthManager();
+    UserAuthManager *userAuthManager = new UserAuthManager(lSecurityManager);
 
     lFaceManager = faceManager;
     int status;

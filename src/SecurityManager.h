@@ -36,7 +36,10 @@ class SecurityManager
     int makeHashA(unsigned char* buffer, size_t bufferSize, unsigned char* out, size_t* outLen);
 
     void* getSecureNeworkContext();
+    int resetSecureNetwork(void* p);
+    int shutdownSecureNetwork(void* p);
     int freeSecureNetworkContext(void* p);
+    int setSecureNetwork(void* p, int sd);
 
   private:
     void* secureNetworkContext;

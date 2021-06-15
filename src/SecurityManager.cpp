@@ -279,7 +279,7 @@ int cmsVerify(std::string &sign, std::string &content, std::string &rootca) {
 
 
 //public:
-SecurityManager::SecurityManager() : healthy(false)
+SecurityManager::SecurityManager() : healthy(false), secureNetworkContext(nullptr)
 {
     readKey();
 }
@@ -528,6 +528,7 @@ int SecurityManager::makeHashA(unsigned char* buffer, size_t bufferSize, unsigne
 }
 
 void* SecurityManager::getSecureNeworkContext() {
+    std::cout << "try to make ssl init" << std::endl;
     const SSL_METHOD* meth = TLS_server_method();
     SSL_CTX* ctx = SSL_CTX_new(meth);
     const char* cipher_list = "TLS_AES_128_GCM_SHA256";
@@ -564,15 +565,33 @@ void* SecurityManager::getSecureNeworkContext() {
         SSL_CTX_free(ctx);
         return nullptr;
     }
+    std::cout << "--> complete to make ssl init" << std::endl;
     secureNetworkContext = reinterpret_cast<void*>(ctx);
     return reinterpret_cast<void*>(ssl);
 }
-
+int SecurityManager::resetSecureNetwork(void* p) {
+    return SSL_clear(reinterpret_cast<SSL*>(p));
+}
+int SecurityManager::shutdownSecureNetwork(void* p) {
+    return SSL_shutdown(reinterpret_cast<SSL*>(p));
+}
 int SecurityManager::freeSecureNetworkContext(void* p) {
+    std::cout << "try to free ssl connect" << std::endl;
     SSL_free(reinterpret_cast<SSL*>(p));
     SSL_CTX_free(reinterpret_cast<SSL_CTX*>(secureNetworkContext));
-    return 0;
+    std::cout << "--> complete to free ssl connect" << std::endl;
+    return 1;
 }
+
+int SecurityManager::setSecureNetwork(void* p, int sd) {
+    std::cout << "try to make ssl connect" << std::endl;
+    SSL* ssl = reinterpret_cast<SSL*>(p);
+    SSL_set_fd(ssl, sd);
+    SSL_accept(ssl);
+    std::cout << "--> complete to make ssl connect" << std::endl;
+    return 1;
+}
+
 
 //private
 int SecurityManager::readKey() {
