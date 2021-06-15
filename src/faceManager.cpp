@@ -146,7 +146,7 @@ bool FaceManager::processFrame()
     return true;
 }
 
-bool FaceManager::registerFace()
+bool FaceManager::registerFace(int numberOfImages)
 {
     cv::Mat frame;
     cv::Mat croppedFace;
@@ -154,23 +154,53 @@ bool FaceManager::registerFace()
     cv::Mat dst_img;
     std::vector<struct Bbox> outputBbox;
 
-    videoStreamer->getFrame(frame);
-    // Create a destination to paint the source into.
-    dst_img.create(frame.size(), frame.type());
+    for (int i=0; i< numberOfImages; i++)
+    {
+        bool faceDetected = false;
+        int cnt = 0;
+        while (!faceDetected && cnt < 600)
+        {
+            videoStreamer->getFrame(frame);
 
-    // Push the images into the GPU
-    if (rotate180)
-        rotateFrame(frame);
+            // TODO: what if frame is empty??
+            if (frame.empty())
+            {
+                std::cout << "frame is empty" << std::endl;
+                break;
+            }
 
-    outputBbox = mtCNN->findFace(frame);
-    // if (!commManager->sendFrame(frame))
-    //     return false;
+            // Create a destination to paint the source into.
+            dst_img.create(frame.size(), frame.type());
 
-    //cv::imshow("VideoSource", frame);
-    faceNet->addNewFace(frame, outputBbox, croppedFace);
+            // Push the images into the GPU
+            if (rotate180)
+                rotateFrame(frame);
 
-    if (!commManager->sendFace(croppedFace))
-        return false;
+            outputBbox = mtCNN->findFace(frame);
+            // if (!commManager->sendFrame(frame))
+            //     return false;
+
+            //cv::imshow("VideoSource", frame);
+            faceDetected = faceNet->addNewFace(frame, outputBbox, croppedFace);
+            cnt++;
+        }
+        if (!faceDetected) // timeout
+        {
+            std::cout << "no face detected in camera." << std::endl;
+            return false;
+        }
+
+        if (!commManager->sendFace(croppedFace))
+            return false;
+        
+        frame.release();
+        croppedFace.release();
+        for (int j=0; j< 60; j++)
+        {
+            videoStreamer->getFrame(frame);
+            frame.release();
+        }
+    }
 
     // frame.release();
     return true;
@@ -185,7 +215,7 @@ void FaceManager::sendFaceImages(string userId)
     std::vector<struct Paths> paths;
     cv::Mat image;
     int len = face_list.size();
-    if (len > 5) len = 5;
+    if (len > 2) len = 2;   // TODO: limited for test
     for (int i = 0; i < len; i++)
     {
         string absPath = imagepath + "/" + face_list[i] + ".jpg";   //TODO : Generate file name

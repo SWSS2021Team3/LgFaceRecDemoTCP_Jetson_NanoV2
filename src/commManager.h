@@ -8,9 +8,9 @@
 #include "TcpSendRecvJpeg.h"
 #include "TcpSendRecvCmd.h"
 #include "MSG_DB.h"
+#include "Payload.h"
 
 class FaceManager;
-class Payload;
 
 enum class Command
 {
@@ -59,14 +59,6 @@ public:
     void receive();
     bool do_loop(FaceManager *faceManager);
     bool sendCommand(int cmd);
-};
-
-class Payload
-{
-public:
-    uint16_t data_id;
-    uint16_t data_length;
-    std::vector<uchar> data;
 };
 
 #endif // _COMM_MANAGER_H

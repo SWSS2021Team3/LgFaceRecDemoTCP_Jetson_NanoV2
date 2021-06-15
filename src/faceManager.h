@@ -44,7 +44,7 @@ public:
     bool init();
     void start();
     bool processFrame();
-    bool registerFace();
+    bool registerFace(int numberOfFaces);
     void stop();
     bool deleteFaceDB(string userId, string faceId);
     bool addFaceDB(string userId, string faceId);

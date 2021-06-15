@@ -204,7 +204,7 @@ bool CommManager::do_loop(FaceManager *faceManager)
             case Command::ADD_FACE:
             {
                 // TODO: get num of pictures from payload
-                if (!faceManager->registerFace())
+                if (!faceManager->registerFace(5))
                 {
                     std::cout << "[ERR] failed to register face" << endl;
                 }
@@ -347,3 +347,13 @@ bool CommManager::sendCommand(int cmd)
 
     return true;
 }
+/*
+bool CommManager::sendCommand(int cmd)
+{
+    SerializablePayload payload;
+    payload.data_id = cmd;
+    payload.i1 = 0;
+
+    return TcpSendObject(TcpConnectedPort, &payload) >= 0;
+}
+*/
