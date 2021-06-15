@@ -18,8 +18,6 @@ class SerializablePayload : public Serializable
 public:
 	size_t serialize_size() const
 	{
-		std::cout << "sizeof uint16_t : " << sizeof(uint16_t) << std::endl;
-
 		return SerializableP<uint16_t>::serialize_size(data_id) +
 			SerializableP<uint16_t>::serialize_size(i1) +
 			SerializableP<uint16_t>::serialize_size(i2) +
