@@ -65,7 +65,7 @@ int main(int argc, char *argv[])
   c1.names.push_back("world");
   c1.uid = 322;
 
-  printf("c1 data %d size %d\n", c1.uid, c1.names.size());
+  printf("c1 data %d size %lu\n", c1.uid, c1.names.size());
   for (std::string& s : c1.names)
     printf("c1 string %s\n", s.c_str());
 
@@ -74,7 +74,7 @@ int main(int argc, char *argv[])
   c2.deserialize(buf);
   delete [] buf;
 
-  printf("c2 data %d size %d\n", c2.uid, c2.names.size());
+  printf("c2 data %d size %lu\n", c2.uid, c2.names.size());
   for (std::string& s : c2.names)
     printf("c2 string %s\n", s.c_str());
 
@@ -88,6 +88,10 @@ int main(int argc, char *argv[])
   }
 
   secuManager = new SecurityManager;
+  if (secuManager->checkEngine("../facenetModels", "../mtCNNModels") != 0) {
+    //engine hash is changed
+    //abort server??? we need policy
+  }
 
   int portNumber = atoi(argv[1]);
   int portNumberSecured = portNumber + 10;//6000;

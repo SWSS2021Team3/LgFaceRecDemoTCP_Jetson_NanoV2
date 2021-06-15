@@ -90,7 +90,7 @@ unsigned int sha256_evp(unsigned char* in, unsigned char* out, int len)
 std::string GetHexString(const std::string &in)
 {
     std::stringstream ss;
-    for (auto iter : in) {
+    for (auto &iter : in) {
         ss << std::setfill('0') << std::setw(2) << std::right << std::hex << std::nouppercase
            << static_cast<unsigned int>(static_cast<unsigned char>(iter));
     }
@@ -376,7 +376,7 @@ int SecurityManager::writeUserDB(unsigned char* buffer, size_t bufferSize, size_
 int SecurityManager::checkEngine(const std::string facePath, std::string mtCnnPath)
 {
     int countChecked = 0;
-    for (const auto it: hashFaceNet) {
+    for (auto &it: hashFaceNet) {
         std::string path = facePath + "/" + it.first;
         bool result = compareHash(path, it.second);
         if (result) {
@@ -387,7 +387,7 @@ int SecurityManager::checkEngine(const std::string facePath, std::string mtCnnPa
             std::cout << path <<": FAILED HASH" << std::endl;
         }
     }
-    for (const auto it: hashMtCnn) {
+    for (auto &it: hashMtCnn) {
         std::string path = mtCnnPath + "/" + it.first;
         bool result = compareHash(path, it.second);
         if (result) {
@@ -592,9 +592,20 @@ int SecurityManager::setSecureNetwork(void* p, int sd) {
     return 1;
 }
 
+bool CheckKeyExist(std::unordered_map<std::string, std::string> & map) {
+    bool ret = true;
+    for (auto &it : map) {
+        if (it.second.size() == 0) {
+            std::cout << "missing :" << it.first << std::endl;
+            ret = false;
+        }
+    }
+    return ret;
+}
 
 //private
 int SecurityManager::readKey() {
+    std::cout << "try to loading key & certificate" << std::endl;
     hashFaceNet["facenet.engine"] = "71493446240e3f9286437c5a0baab41aae6a1e47ddbcb21a24079440ba0e5d86";
     hashFaceNet["facenet.uff"] = "7049d18ad472b535ccd022edf80707d6598ad81472028f1c0024274524ff6ce4";
     hashMtCnn["det1_relu1.engine"] = "3c26255262c050185c5fa45521a96fedda59f635457b5c8795268a749f7a4c70";
@@ -628,17 +639,27 @@ int SecurityManager::readKey() {
     certificate["facedb"] = readFile("../facedb.crt");
     certificate["rootca"] = readFile("../rootca.crt");
     certificate["server"] = readFile("../server.crt");
-    //fixme: check string lengts are not zero
-    std::cout << "hash loading complete" << std::endl;
-    //if read all, healthy = true;
-
+    
+    healthy = CheckKeyExist(hashFaceNet);
+    healthy &= CheckKeyExist(hashMtCnn);
+    healthy &= CheckKeyExist(symmetricKey);
+    healthy &= CheckKeyExist(iv);
+    healthy &= CheckKeyExist(asymmetricKey);
+    healthy &= CheckKeyExist(certificate);
+    if (!healthy) {
+        std::cout << "Warning. check key & certi files" << std::endl;
+        std::cout << "Warning. check key & certi files" << std::endl;
+        std::cout << "Warning. check key & certi files" << std::endl << std::endl << std::endl;
+        return -1;
+    }
+    std::cout << "key loading complete" << std::endl;
     //debug_print
-    std::cout << "symmetricKey[\"videodb\"] : size:" << symmetricKey["videodb"].size() << std::endl;
-    std::cout << "iv[\"videodb\"] : size:" << iv["videodb"].size() << std::endl;
-    std::cout << "asymmetricKey[\"videodb\"] : size:" << asymmetricKey["videodb"].size() << std::endl;
-    std::cout << "certificate[\"videodb\"] : size:" << certificate["videodb"].size() << std::endl;
-    std::cout << "certificate[\"rootca\"] : size:" << certificate["rootca"].size() << std::endl;
-    healthy = true;
+    // std::cout << "symmetricKey[\"videodb\"] : size:" << symmetricKey["videodb"].size() << std::endl;
+    // std::cout << "iv[\"videodb\"] : size:" << iv["videodb"].size() << std::endl;
+    // std::cout << "asymmetricKey[\"videodb\"] : size:" << asymmetricKey["videodb"].size() << std::endl;
+    // std::cout << "certificate[\"videodb\"] : size:" << certificate["videodb"].size() << std::endl;
+    // std::cout << "certificate[\"rootca\"] : size:" << certificate["rootca"].size() << std::endl;
+    return 0;
 }
 
 int SecurityManager::changeKey() { return 0;} //no plan to implement //unencrypt && generateKey && readKey && sign/enc
