@@ -63,7 +63,7 @@ int TcpSendObject(TTcpConnectedPort* TcpConnectedPort, Serializable* s)
 
     size_t s_size = s->serialize_size();
 
-    u_long payloadSize = htonl(static_cast<u_long>(s_size));
+    unsigned int payloadSize = htonl(static_cast<u_long>(s_size));
     if (WriteDataTcp(TcpConnectedPort, reinterpret_cast<unsigned char*>(&payloadSize), sizeof(payloadSize)) != sizeof(payloadSize)) {
         return(-1);
     }
@@ -82,7 +82,7 @@ bool TcpRecvObject(TTcpConnectedPort* TcpConnectedPort, Serializable* s)
     if (s == NULL)
         return false;
 
-    u_long payloadSize;
+    unsigned int payloadSize;
 
     if (ReadDataTcp(TcpConnectedPort, reinterpret_cast<unsigned char*>(&payloadSize), sizeof(payloadSize)) != sizeof(payloadSize)) {
         return(false);

@@ -178,15 +178,6 @@ void CommManager::acceptSecure()
     }
 }
 
-bool CommManager::sendMessage()
-{
-    Payload *p = new Payload();
-    p->data_id = 0x1001;
-    p->data_length = 0;
-    // p->data = NULL;
-    return true;
-}
-
 bool CommManager::sendFrame(cv::Mat &frame)
 {
     pthread_mutex_lock(&sendMutex);
@@ -287,7 +278,6 @@ bool CommManager::do_loop(FaceManager *faceManager)
     // loop over frames with inference
     int nbFrames = 0;
     auto globalTimeStart = chrono::steady_clock::now();
-    Payload *payload = NULL;
     UserAuthManager *userAuthManager = new UserAuthManager(lSecurityManager);
 
     lFaceManager = faceManager;
@@ -444,13 +434,13 @@ void CommManager::receive()
 
     TTcpConnectedPort *connection = TcpConnectedPort;
 
-    Payload payload;
+    SerializablePayload payload;
 
     while (true)
     {
         std::cout << "wait cmd" << std::endl;
 
-        if (!TcpRecvCommand(connection, &payload))
+        if (!TcpRecvObject(connection, &payload))
         {
             std::cout << "failed to receive payload" << std::endl;
             continue;
@@ -513,26 +503,9 @@ void CommManager::receive()
 
 bool CommManager::sendCommand(int cmd)
 {
-    Payload payload;
-    payload.data_id = cmd;
-    payload.data_length = 0;
-
-    int ret = TcpSendCommand(TcpConnectedPort, &payload);
-    if (ret < 0)
-    {
-        std::cout << "failed to send command" << endl;
-        return false;
-    }
-
-    return true;
-}
-/*
-bool CommManager::sendCommand(int cmd)
-{
     SerializablePayload payload;
     payload.data_id = cmd;
     payload.i1 = 0;
 
     return TcpSendObject(TcpConnectedPort, &payload) >= 0;
 }
-*/
