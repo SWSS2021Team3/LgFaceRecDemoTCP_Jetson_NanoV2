@@ -24,7 +24,8 @@ class CommandMessage
 public:
     CommandMessage(Command _c) : cmd(_c) {}
     CommandMessage(Command _c, int _uid) : cmd(_c), uid(_uid) {}
-    CommandMessage(Command _c, std::string userId, std::string password) {}
+    CommandMessage(Command _c, std::string _userId, std::string _password)
+        : cmd(_c), userId(_userId), password(_password) {}
     Command cmd;
     std::string userId;
     std::string password;

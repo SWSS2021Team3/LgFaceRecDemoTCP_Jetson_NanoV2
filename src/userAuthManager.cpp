@@ -19,7 +19,7 @@ struct UserData UserDB[NUM_STUDENTS] = {
 UserAuthManager::UserAuthManager() {
     resetCurrentUser();
     mSecurityManager = new SecurityManager();
-    loadUserDB();
+//    loadUserDB();
 }
 
 UserAuthManager::~UserAuthManager() {
