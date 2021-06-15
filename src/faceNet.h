@@ -41,7 +41,7 @@ public:
     void doInference(float *inputData, float *output);
     bool forwardAddFace(cv::Mat image, std::vector<struct Bbox> outputBbox, const string className);
     void forward(cv::Mat image, std::vector<struct Bbox> outputBbox);
-    void featureMatching(cv::Mat &image);
+    void featureMatching(cv::Mat &image, std::vector<std::string>& matchedUser);
     bool addNewFace(cv::Mat &image, std::vector<struct Bbox> outputBbox, cv::Mat &croppedFace);
     void resetVariables();
 

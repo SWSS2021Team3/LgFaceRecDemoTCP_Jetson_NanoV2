@@ -70,6 +70,7 @@ public:
     void disconnect();
     bool sendFace(cv::Mat &frame);
     bool sendFrame(cv::Mat &frame);
+    bool sendMatchedUser(std::string username);
     bool sendRegisteredFace(cv::Mat &frame);
     bool sendLoginResp(bool result_ok);
     bool sendMessage();

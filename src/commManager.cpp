@@ -194,6 +194,20 @@ bool CommManager::sendFrame(cv::Mat &frame)
     return ret >= 0;
 }
 
+bool CommManager::sendMatchedUser(std::string username)
+{
+    pthread_mutex_lock(&sendMutex);
+
+    if (!sendCommand(SIGNAL_FM_RESP_USER_ATTEND))
+    {
+        pthread_mutex_unlock(&sendMutex);
+        return false;
+    }
+
+    pthread_mutex_unlock(&sendMutex);
+    return true;
+}
+
 bool CommManager::sendRegisteredFace(cv::Mat &frame)
 {
     pthread_mutex_lock(&sendMutex);

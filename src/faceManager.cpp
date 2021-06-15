@@ -136,12 +136,18 @@ bool FaceManager::processFrame()
     faceNet->forward(frame, outputBbox);
     // auto endForward = chrono::steady_clock::now();
     // auto startFeatM = chrono::steady_clock::now();
-    faceNet->featureMatching(frame);
+    vector<string> matchedUser;
+
+    faceNet->featureMatching(frame, matchedUser);
     // auto endFeatM = chrono::steady_clock::now();
     faceNet->resetVariables();
 
     if (!commManager->sendFrame(frame))
         return false;
+    for (std::string &u : matchedUser)
+    {
+        commManager->sendMatchedUser(u);
+    }
 
     outputBbox.clear();
     // frame.release();
