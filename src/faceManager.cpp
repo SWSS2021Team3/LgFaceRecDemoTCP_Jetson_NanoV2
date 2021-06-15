@@ -210,7 +210,7 @@ bool FaceManager::registerFace(string userId, int numberOfImages)
         if (!commManager->sendFace(croppedFace))
             return false;
 
-        //TODO : Add facelist to user(userId) : check
+        //TODO : random generation for faceId?
         string faceId = "myface";
         if (!addFaceDB(userId,faceId))
             return false;
@@ -268,16 +268,14 @@ bool FaceManager::deleteFaceDB(string userId, string faceId)
         if(temp_line.size() == 0)
             break;
         // face_db_write << temp_line;
-        if(pos = temp_line.find(userId) != std::string::npos)
+        if((pos = temp_line.find(userId)) != std::string::npos)
         {
-            std::cout << "Find userId : " << userId << endl;
-            if(pos = temp_line.find(faceId) != std::string::npos)
+            std::cout << "Find userId : " << userId << " pos : " << pos << endl;
+            if((pos = temp_line.find(faceId)) != std::string::npos)
             {
-                std::cout << "Delte faceId : " << faceId << endl;
+                std::cout << "Delte faceId : " << faceId << " pos : " << pos << endl;
                 temp_line.erase(pos-1, faceId.size()+1);    //Delete with white_space(ex. " abc")
             }
-            // face_db_write << " ";
-            // face_db_write.write(faceId.c_str(),faceId.size());
         }
         face_db_write << temp_line;
         face_db_write << "\n";
@@ -290,10 +288,14 @@ bool FaceManager::deleteFaceDB(string userId, string faceId)
         if(!strncmp(v_fd[i].userID.c_str(), userId.c_str(), userId.size()))
         {
             std::cout << "Found Face List and add face list" << endl;
-            v_fd[i].faceNumber.push_back(faceId);
             for(int j=0; j<v_fd[i].faceNumber.size(); j++)
             {
                 std::cout << "List : " << v_fd[i].faceNumber[j] << endl;
+                if(!strncmp(v_fd[i].faceNumber[j].c_str(), faceId.c_str(), faceId.size()))
+                {
+                    std::cout << "Delete : " << v_fd[i].faceNumber[j] << endl;
+                    v_fd[i].faceNumber.erase(v_fd[i].faceNumber.begin(),v_fd[i].faceNumber.begin()+j);
+                }
             }
             return true;
         }
@@ -396,7 +398,7 @@ vector<faceData> FaceManager::readFaceDB()
     string temp_vid;
     
     ifstream face_db("./facelist"); //TODO : read from facedb
-    ofstream face_list("./facelist_read",ios_base::app);
+    ofstream face_list("./facelist_read");
     while(face_db.good())
     {
         getline(face_db, temp_line);
