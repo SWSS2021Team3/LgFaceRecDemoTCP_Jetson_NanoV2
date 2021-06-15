@@ -13,6 +13,7 @@ public:
 	std::vector<uchar> data;
 };
 
+/*
 class SerializablePayload : public Serializable
 {
 public:
@@ -49,5 +50,6 @@ public:
 	std::string str1;
 	std::string str2;
 };
+*/
 
 #endif // _PAYLOAD_H
