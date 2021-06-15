@@ -17,12 +17,12 @@
 
 #include <openssl/ssl.h>
 
-const std::string SecurityManager::pathVideoDB = "videodb.bin";
-const std::string SecurityManager::pathVideoDBSign = "videodb.sign";
-const std::string SecurityManager::pathUserDB = "userdb.bin";
-const std::string SecurityManager::pathUserDBSign = "userdb.sign";
-const std::string SecurityManager::pathFaceDB = "facedb.bin";
-const std::string SecurityManager::pathFaceDBSign = "facedb.sign";
+const std::string SecurityManager::pathVideoDB = "../videodb.bin";
+const std::string SecurityManager::pathVideoDBSign = "../videodb.sign";
+const std::string SecurityManager::pathUserDB = "../userdb.bin";
+const std::string SecurityManager::pathUserDBSign = "../userdb.sign";
+const std::string SecurityManager::pathFaceDB = "../facedb.bin";
+const std::string SecurityManager::pathFaceDBSign = "../facedb.sign";
 
 // File Util
 std::string readFile(const std::string &path)
