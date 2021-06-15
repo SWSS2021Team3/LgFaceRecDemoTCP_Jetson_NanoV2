@@ -23,6 +23,7 @@ UserAuthManager::UserAuthManager() {
 }
 
 UserAuthManager::~UserAuthManager() {
+//    saveUserDB();
     resetCurrentUser();
     if (mSecurityManager != NULL) {
         delete mSecurityManager;
@@ -37,6 +38,7 @@ void UserAuthManager::resetCurrentUser() {
 }
 
 void UserAuthManager::loadUserDB() {
+    cout << "[UserAuthManager] loadUserDB" << endl;
     size_t readSize;
     size_t readLen;
 
@@ -58,6 +60,7 @@ void UserAuthManager::loadUserDB() {
 }
 
 int UserAuthManager::saveUserDB() {
+    cout << "[UserAuthManager] saveUserDB" << endl;
     size_t dataSize = sizeof(UserDB);
     size_t writeLen;
     int ret = -1;
@@ -73,6 +76,7 @@ int UserAuthManager::saveUserDB() {
 
 bool UserAuthManager::findUserFromDB(string userid) {
     for (int i=0; i<NUM_STUDENTS; i++) {
+        cout << ">>> " << UserDB[i].userID << endl;
 		if (!strcmp(UserDB[i].userID.c_str(), userid.c_str())) {
 			mCurrentUserData.userID = UserDB[i].userID;
 			mCurrentUserData.password = UserDB[i].password;
@@ -102,11 +106,15 @@ bool UserAuthManager::verifyUser(string userid, string passwd) {
 	}
 
     // make password digest using sha-256
-    unsigned char hashedPW[LIMIT_PW_LENGTH];
+    unsigned char hashedPW[LIMIT_PW_LENGTH] = {0,};
     size_t outLen;
-    mSecurityManager->makeHash((unsigned char*)passwd.c_str(), LIMIT_PW_LENGTH, hashedPW, &outLen);
-	if (mIsFound) {
-		return !strncmp((const char*)hashedPW, mCurrentUserData.password.c_str(), pLen);
+    //cout << ">>>> pass : " << (unsigned char*)passwd.c_str() << endl;
+    size_t passLen = strlen(passwd.c_str());
+
+    mSecurityManager->makeHashA((unsigned char*)passwd.c_str(), strlen(passwd.c_str()), hashedPW, &outLen);
+    //cout << "hashed pw = " << hashedPW << endl;
+    if (mIsFound) {
+		return !strncasecmp((const char*)hashedPW, mCurrentUserData.password.c_str(), pLen);
 	}
 	return false;
 }

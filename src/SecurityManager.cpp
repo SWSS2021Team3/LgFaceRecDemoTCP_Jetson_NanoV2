@@ -8,6 +8,7 @@
 #include <climits> //INT_MAX
 #include <cstdio>
 #include <algorithm> //min
+#include <cstring>
 
 #include "SecurityManager.h"
 
@@ -513,6 +514,16 @@ int SecurityManager::readEngine(unsigned char* buffer, size_t bufferSize, size_t
 int SecurityManager::makeHash(unsigned char* buffer, size_t bufferSize, unsigned char* out, size_t* outLen) {
     *outLen = SHA256_DIGEST_LENGTH;
     sha256_evp(buffer, out, bufferSize);
+    return 0;
+}
+
+int SecurityManager::makeHashA(unsigned char* buffer, size_t bufferSize, unsigned char* out, size_t* outLen) {
+    *outLen = SHA256_DIGEST_LENGTH;
+    sha256_evp(buffer, out, bufferSize);
+    //std::cout << "out=" << out << std::endl;
+    std::string hexString = GetHexString(std::string(reinterpret_cast<char*>(out), *outLen));
+    //std::cout << "hexString = " << hexString << std::endl;
+    memcpy(out, hexString.c_str(), (*outLen) * 2);
     return 0;
 }
 

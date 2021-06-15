@@ -4,7 +4,7 @@
 
 #define NUM_STUDENTS 8
 #define LIMIT_ID_LENGTH 20
-#define LIMIT_PW_LENGTH 32
+#define LIMIT_PW_LENGTH 64
 
 struct UserData {
     std::string userID;
