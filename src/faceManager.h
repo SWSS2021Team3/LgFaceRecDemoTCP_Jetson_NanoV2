@@ -46,7 +46,7 @@ public:
     bool init();
     void start();
     bool processFrame();
-    bool registerFace(int numberOfFaces);
+    bool registerFace(string userId, int numberOfFaces);
     void playVideo(string status);
     void stop();
     bool deleteFaceDB(string userId, string faceId);

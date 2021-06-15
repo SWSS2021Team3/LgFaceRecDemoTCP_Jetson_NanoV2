@@ -163,7 +163,7 @@ void FaceManager::playVideo(std::string status)
         isVideoPlay = false;
 }
 
-bool FaceManager::registerFace(int numberOfImages)
+bool FaceManager::registerFace(string userId, int numberOfImages)
 {
     cv::Mat frame;
     cv::Mat croppedFace;
