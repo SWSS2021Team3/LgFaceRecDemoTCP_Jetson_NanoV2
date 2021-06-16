@@ -19,6 +19,7 @@ enum class Command
     ADD_FACE,
     LOGIN,
     VIDEO,
+    DISCONNECT
 };
 
 class CommandMessage

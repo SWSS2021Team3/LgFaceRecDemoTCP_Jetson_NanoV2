@@ -132,7 +132,7 @@ void CommManager::accept()
             printf("AcceptTcpConnection Failed\n");
             continue;
         }
-        
+
 
         pthread_mutex_lock(&listenMutex);
         pthread_cond_broadcast(&connectedCond);
@@ -267,10 +267,18 @@ bool CommManager::sendLoginResp(bool result_ok)
 
 void CommManager::disconnect()
 {
-    //lSecurityManager->resetSecureNetwork(TcpConnectedPort->ssl);
-    lSecurityManager->shutdownSecureNetwork(TcpConnectedPort->ssl);
-    lSecurityManager->freeSecureNetworkContext(TcpConnectedPort->ssl);
-    CloseTcpConnectedPort(&TcpConnectedPort); // Close network port;
+    if (TcpConnectedPort != NULL)
+    {
+        if (TcpConnectedPort->ssl != nullptr)
+        {
+            //lSecurityManager->resetSecureNetwork(TcpConnectedPort->ssl);
+            lSecurityManager->shutdownSecureNetwork(TcpConnectedPort->ssl);
+            lSecurityManager->freeSecureNetworkContext(TcpConnectedPort->ssl);
+            TcpConnectedPort->ssl = nullptr;
+        }
+        CloseTcpConnectedPort(&TcpConnectedPort); // Close network port;
+        TcpConnectedPort = NULL;
+    }
 }
 
 bool CommManager::do_loop(FaceManager *faceManager)
@@ -290,7 +298,8 @@ bool CommManager::do_loop(FaceManager *faceManager)
     }
     long cnt = 0;
 
-    while (true)
+    bool alive = true;
+    while (alive)
     {
         if (!faceManager->processFrame())
         {
@@ -365,20 +374,18 @@ bool CommManager::do_loop(FaceManager *faceManager)
                 faceManager->playVideo(cmdMsg.param);
                 break;
             }
+            case Command::DISCONNECT:
+            {
+                std::cout << "disconnect" << std::endl;
+                alive = false;
+                break;
+            }
             default:
                 break;
             }
         }
         pthread_mutex_unlock(&recvMutex);
 
-        // pthread_mutex_lock(&sendMutex);
-        // if (!sendCommand(SIGNAL_FM_BASE)) // PING
-        // {
-        //     std::cout << " failed to send command" << endl;
-        //     pthread_mutex_unlock(&sendMutex);
-        //     break;
-        // }
-        // pthread_mutex_unlock(&sendMutex);
 #ifdef LOG_TIMES
         // std::cout << "mtCNN took " << std::chrono::duration_cast<chrono::milliseconds>(endMTCNN - startMTCNN).count() << "ms\n";
         // std::cout << "Forward took " << std::chrono::duration_cast<chrono::milliseconds>(endForward - startForward).count() << "ms\n";
@@ -489,6 +496,14 @@ void CommManager::receive()
             std::cout << "SIGNAL_FM_REQ_VIDEO_END" << endl;
             pthread_mutex_lock(&recvMutex);
             commandQueue.push(CommandMessage(Command::VIDEO, "end"));
+            pthread_mutex_unlock(&recvMutex);
+            break;
+        }
+        case SIGNAL_FM_REQ_DISCONNECT:
+        {
+            std::cout << "SIGNAL_FM_REQ_DISCONNECT" << std::endl;
+            pthread_mutex_lock(&recvMutex);
+            commandQueue.push(CommandMessage(Command::DISCONNECT));
             pthread_mutex_unlock(&recvMutex);
             break;
         }
