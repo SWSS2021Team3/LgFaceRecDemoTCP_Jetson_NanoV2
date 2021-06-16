@@ -190,11 +190,11 @@ bool FaceManager::registerFace(string userId, int numberOfImages)
         int cnt = 0;
 
         // Put faceId with current timestamp
-        // auto now = std::chrono::system_clock::now();
-        // string timestamp = to_string(std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count());
-        // string faceId = timestamp;
-        // faceId.erase(faceId.begin(),faceId.begin()+6);  //openCV vulnerbility (fileName should be ascii)
-        string faceId = "MJ23";
+        auto now = std::chrono::system_clock::now();
+        string timestamp = to_string(std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count());
+        string faceId = timestamp;
+        faceId.erase(faceId.begin(),faceId.begin()+6);  //openCV vulnerbility (fileName should be ascii)
+
         for(int i=0; i<faceDB.size(); i++)
         {
             if(!strncmp(faceDB[i].userId.c_str(), userId.c_str(), userId.size()))
@@ -232,7 +232,6 @@ bool FaceManager::registerFace(string userId, int numberOfImages)
         }
 
         frame.release();
-        croppedFace.release();
         for (int j=0; j< 60; j++)   //TODO : check
         {
             videoStreamer->getFrame(frame);
@@ -247,6 +246,8 @@ bool FaceManager::registerFace(string userId, int numberOfImages)
 
         if (!commManager->sendFace(croppedFace))
             return false;
+
+        croppedFace.release();
 
         std::cout << "[FaceManager] faceId Created with userId_timestamp = " << faceId << std::endl;
         if (!addFaceDB(userId,faceId))
@@ -269,7 +270,7 @@ void FaceManager::sendFaceImages(string userId)
     std::vector<struct Paths> paths;
     cv::Mat image;
     int len = face_list.size();
-    if (len > 2) len = 2;   // TODO: limited for test
+    // if (len > 2) len = 2;   // TODO: limited for test
     for (int i = 0; i < len; i++)
     {
         string absPath = imagepath + "/" + face_list[i] + ".jpg";
