@@ -240,18 +240,31 @@ bool CommManager::sendFace(cv::Mat &frame)
     return ret >= 0;
 }
 
-bool CommManager::sendLoginResp(bool result_ok)
+bool CommManager::sendLoginResp(bool result_ok, bool is_admin)
 {
     pthread_mutex_lock(&sendMutex);
 
     if (result_ok)
     {
-        if (!sendCommand(SIGNAL_FM_RESP_LOGIN_OK))
+        if (is_admin)
         {
-            pthread_mutex_unlock(&sendMutex);
-            return false;
+            std::cout << "administrator login" << endl;
+            if (!sendCommand(SIGNAL_FM_RESP_LOGIN_OK, "admin"))
+            {
+                pthread_mutex_unlock(&sendMutex);
+                return false;
+            }
         }
-    }
+        else
+        {
+            std::cout << "user login" << endl;
+            if (!sendCommand(SIGNAL_FM_RESP_LOGIN_OK))
+            {
+                pthread_mutex_unlock(&sendMutex);
+                return false;
+            }
+        }
+   }
     else
     {
         if (!sendCommand(SIGNAL_FM_RESP_LOGIN_FAILED))
@@ -351,6 +364,7 @@ bool CommManager::do_loop(FaceManager *faceManager)
                 string password = cmdMsg.password;
                 bool loginResult = userAuthManager->verifyUser(userid, password);
                 std::cout << "login result : " << loginResult << endl;
+                bool isAdmin = false;
 
                 // send response payload with login result
                 int uid = userAuthManager->getCurrentUid();
@@ -358,8 +372,12 @@ bool CommManager::do_loop(FaceManager *faceManager)
                 {
                     // set uid to faceManager here
                     faceManager->setCurrentUid(to_string(uid));
+                    if (uid == 0)
+                    {
+                        isAdmin = true;
+                    }
                 }
-                sendLoginResp(loginResult);
+                sendLoginResp(loginResult, isAdmin);
                 break;
             }
             case Command::VIDEO:

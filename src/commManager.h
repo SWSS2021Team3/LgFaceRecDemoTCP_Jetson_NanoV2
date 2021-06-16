@@ -76,7 +76,7 @@ public:
     bool sendFrame(cv::Mat &frame);
     bool sendMatchedUser(std::string username);
     bool sendRegisteredFace(cv::Mat &frame);
-    bool sendLoginResp(bool result_ok);
+    bool sendLoginResp(bool result_ok, bool is_admin);
     void receive();
     bool do_loop(FaceManager *faceManager);
     bool sendCommand(int cmd);
