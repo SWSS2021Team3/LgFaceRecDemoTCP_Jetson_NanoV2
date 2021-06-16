@@ -34,6 +34,32 @@ public:
   std::vector<std::string> faceId;
 };
 
+template <>
+class SerializableP<FaceData>
+{
+public:
+    static size_t serialize_size(FaceData fd)
+    {
+		return SerializableP<std::string>::serialize_size(fd.userId) +
+			SerializableP<std::vector<std::string> >::serialize_size(fd.faceId);
+    }
+
+    static char *serialize(char *buf, FaceData fd)
+    {
+		buf = SerializableP<std::string>::serialize(buf, fd.userId);
+		buf = SerializableP<std::vector<std::string>>::serialize(buf, fd.faceId);
+        return buf;
+    }
+
+    static const char *deserialize(const char *buf, FaceData &fd)
+    {
+		buf = SerializableP<std::string>::deserialize(buf, fd.userId);
+		buf = SerializableP<std::vector<std::string>>::deserialize(buf, fd.faceId);
+        return buf;
+    }
+};
+
+
 class FaceManager
 {
 private:

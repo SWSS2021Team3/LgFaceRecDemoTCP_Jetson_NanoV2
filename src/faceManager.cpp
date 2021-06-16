@@ -56,6 +56,8 @@ bool FaceManager::init()
     // init mtCNN
     mtCNN = new mtcnn(videoFrameHeight, videoFrameWidth);
 
+    faceDB = readFaceDB();
+
     if(loadFaceNet() == true)
         return true;
 }
@@ -247,6 +249,7 @@ bool FaceManager::registerFace(string userId, int numberOfImages)
 
 void FaceManager::sendFaceImages(string userId)
 {
+    std::cout << "[FaceManager] sendFaceImages : " << userId << endl;
     vector<string> face_list = getFaceListFromDB(userId);   //Read facelist from FaceDB
     string imagepath = "../imgs";
     
@@ -302,8 +305,9 @@ bool FaceManager::deleteFaceDB(string userId, string faceId)
             }
         }
     }
-    if (!saveFaceDB())
-        return false;
+    saveFaceDB(); //TODO : check return value
+    /*if (!saveFaceDB())
+        return false;*/
     // TODO: Serialize FaceDB
     if (!loadFaceNet())
         return false;
@@ -333,16 +337,36 @@ bool FaceManager::saveFaceDB()
 bool FaceManager::addFaceDB(string userId, string faceId)
 {
     std::cout << "[FaceManager] addFaceDB: " << userId << " / " << faceId << endl;
+    bool user_found = false;
     for(int i=0; i<faceDB.size(); i++)
     {
         if(!strncmp(faceDB[i].userId.c_str(), userId.c_str(), userId.size()))
         {
             std::cout << "[FaceManager] Find userId : " << userId << " Add : " << faceId << endl;
             faceDB[i].faceId.push_back(faceId);
+            user_found = true;
+            break;
         }
     }
-    if (!saveFaceDB())
-        return false;
+    if(!user_found)
+    {
+        std::cout << "[FaceManager] add New User: " << userId << endl;
+        FaceData fd;
+        fd.userId = userId;
+        fd.faceId.push_back(faceId);
+        faceDB.push_back(fd);
+        for(int i=0; i<faceDB.size(); i++)
+        {
+            std::cout << "[FaceManager] faceDB.userId " << faceDB[i].userId << endl;
+            for(int j=0; j<faceDB[i].faceId.size(); j++)
+            {
+                std::cout << "[FaceManager] faceDB.faceId " << faceDB[i].faceId[j] << endl;
+            }
+        }
+    }
+    saveFaceDB(); //TODO : check return value
+    /*if (!saveFaceDB())
+        return false;*/
     //TODO: Serialize FaceDB
     if (!loadFaceNet())
         return false;
@@ -397,8 +421,19 @@ vector<FaceData>& FaceManager::readFaceDB()
         cout << "[FaceManager] failed to read faceDB" << endl;
         return faceDB;
     }
-    //TODO: deserialize from DB feil to faceDB
+
+    std::cout << "[FaceManager] readSize : " << readSize << " readLen : " << readLen << endl;
+
+    //TODO: deserialize from DB file to faceDB
     SerializableP<vector<FaceData>>::deserialize(reinterpret_cast<const char*>(readData), faceDB);
+    /*unsigned char* pbuf = readData;
+    for (int i=0; i<1; i++)
+    {
+        // SerializableP<vector<FaceData>>::deserialize(reinterpret_cast<const char*>(readData), faceDB[i]);
+        // faceDB[i].deserialize(reinterpret_cast<const char*>(readData));
+        faceDB[i].deserialize((const char*)pbuf);
+    }*/
+    
     delete [] readData;
     return faceDB;
 }
