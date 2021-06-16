@@ -414,6 +414,14 @@ vector<FaceData>& FaceManager::readFaceDB()
     size_t readLen;
 
     readSize = lSecurityManager->getSizeFaceDB();
+
+    if (readSize == 0)
+    {
+        // create empty file and return;
+        std::cout << "[FaceManager] file is empty. Initilizing..." << std::endl;
+        saveFaceDB();
+        return faceDB;
+    }
     unsigned char* readData = new unsigned char[readSize];
 
     int ret = lSecurityManager->readFaceDB(readData, readSize, &readLen);
