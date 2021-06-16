@@ -338,8 +338,8 @@ bool CommManager::do_loop(FaceManager *faceManager)
             case Command::ADD_FACE:
             {
                 // TODO: get uid/num of pictures from payload
-                // if (!faceManager->registerFace("1"/*to_string(uid)*/,1/*number_of_faces*/))
-                if(!faceManager->deleteFaceDB("1","bbbb"))
+                if (!faceManager->registerFace("1"/*to_string(uid)*/,1/*number_of_faces*/))
+                // if(!faceManager->deleteFaceDB("1","bbbb"))
                 {
                     std::cout << "[ERR] failed to delete face" << endl;
                 }

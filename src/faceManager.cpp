@@ -210,8 +210,11 @@ bool FaceManager::registerFace(string userId, int numberOfImages)
         if (!commManager->sendFace(croppedFace))
             return false;
 
-        //TODO : random generation for faceId?
-        string faceId = "myface";
+        // Put faceId with current timestamp
+        auto now = std::chrono::system_clock::now();
+        string timestamp = to_string(std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count());
+        string faceId = userId + timestamp;
+        std::cout << "faceId Created with userId + timestamp = " << faceId << std::endl;
         if (!addFaceDB(userId,faceId))
             return false;
         
@@ -240,7 +243,7 @@ void FaceManager::sendFaceImages(string userId)
     if (len > 2) len = 2;   // TODO: limited for test
     for (int i = 0; i < len; i++)
     {
-        string absPath = imagepath + "/" + face_list[i] + ".jpg";   //TODO : Generate file name
+        string absPath = imagepath + "/" + face_list[i] + ".jpg";
         std::cout << "loading " << i << " " << absPath << std::endl;
         loadInputImage(absPath, image, videoFrameWidth, videoFrameHeight);
         commManager->sendRegisteredFace(image);
@@ -260,7 +263,7 @@ bool FaceManager::deleteFaceDB(string userId, string faceId)
     string temp_line;
     vector<faceData> v_fd = readFaceDB();
     ifstream face_db_read("./facelist_read");
-    ofstream face_db_write("./facelist_write", ios_base::app);
+    ofstream face_db_write("./facelist_write");
     size_t pos = 0;
     while(face_db_read.good())
     {
@@ -316,7 +319,7 @@ bool FaceManager::addFaceDB(string userId, string faceId)
     string temp_line;
     vector<faceData> v_fd = readFaceDB();
     ifstream face_db_read("./facelist_read");
-    ofstream face_db_write("./facelist_write", ios_base::app);
+    ofstream face_db_write("./facelist_write");
     size_t pos = 0;
     while(face_db_read.good())
     {
