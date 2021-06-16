@@ -32,6 +32,7 @@ private:
     mtcnn *mtCNN;
 
     int mCurrentUid;
+    int maxFacesPerScene;
 
     bool isVideoPlay = false;
 
@@ -44,6 +45,7 @@ public:
     FaceManager(CommManager *comm, const char *filename);
     ~FaceManager();
     bool init();
+    bool loadFaceNet();
     void start();
     bool processFrame();
     bool registerFace(string userId, int numberOfFaces);

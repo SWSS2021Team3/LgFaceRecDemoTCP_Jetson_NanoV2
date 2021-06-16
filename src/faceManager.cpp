@@ -47,7 +47,7 @@ bool FaceManager::init()
     bool serializeEngine = true;
     int batchSize = 1;
 
-    int maxFacesPerScene = 8;
+    maxFacesPerScene = 8;
     float knownPersonThreshold = 1.;
 
     // init facenet
@@ -57,25 +57,36 @@ bool FaceManager::init()
     // init mtCNN
     mtCNN = new mtcnn(videoFrameHeight, videoFrameWidth);
 
-    //init Bbox and allocate memory for "maxFacesPerScene" faces per scene
-    std::vector<struct Bbox> outputBbox;
-    outputBbox.reserve(maxFacesPerScene);
+    if(loadFaceNet() == true)
+        return true;
+}
 
-    // get embeddings of known faces
-    std::vector<struct Paths> paths;
-    cv::Mat image;
-    getFilePaths("../imgs", paths);
-    for (int i = 0; i < paths.size(); i++)
+bool FaceManager::loadFaceNet()
+{
+    std::cout << "loadFaceNet" << std::endl;
+    if(faceNet != NULL && mtCNN != NULL)
     {
-        loadInputImage(paths[i].absPath, image, videoFrameWidth, videoFrameHeight);
-        outputBbox = mtCNN->findFace(image);
-        std::size_t index = paths[i].fileName.find_last_of(".");
-        std::string rawName = paths[i].fileName.substr(0, index);
-        faceNet->forwardAddFace(image, outputBbox, rawName);
-        faceNet->resetVariables();
+        //init Bbox and allocate memory for "maxFacesPerScene" faces per scene
+        std::vector<struct Bbox> outputBbox;
+        outputBbox.reserve(maxFacesPerScene);
+
+        // get embeddings of known faces
+        std::vector<struct Paths> paths;
+        cv::Mat image;
+        getFilePaths("../imgs", paths);
+        for (int i = 0; i < paths.size(); i++)
+        {
+            loadInputImage(paths[i].absPath, image, videoFrameWidth, videoFrameHeight);
+            outputBbox = mtCNN->findFace(image);
+            std::size_t index = paths[i].fileName.find_last_of(".");
+            std::string rawName = paths[i].fileName.substr(0, index);
+            faceNet->forwardAddFace(image, outputBbox, rawName);
+            faceNet->resetVariables();
+        }
+        outputBbox.clear();
+        return true;
     }
-    outputBbox.clear();
-    return true;
+    return false;
 }
 
 void FaceManager::start()
@@ -218,6 +229,9 @@ bool FaceManager::registerFace(string userId, int numberOfImages)
         std::cout << "faceId Created with userId + timestamp = " << faceId << std::endl;
         if (!addFaceDB(userId,faceId))
             return false;
+
+        if (!loadFaceNet())
+            return false;
         
         frame.release();
         croppedFace.release();
@@ -234,10 +248,9 @@ bool FaceManager::registerFace(string userId, int numberOfImages)
 
 void FaceManager::sendFaceImages(string userId)
 {
-    vector<string> face_list = getFaceListFromDB(userId);
+    vector<string> face_list = getFaceListFromDB(userId);   //Read facelist from FaceDB
     string imagepath = "../imgs";
     
-    // TODO: read user's images
     std::vector<struct Paths> paths;
     cv::Mat image;
     int len = face_list.size();
@@ -279,9 +292,6 @@ void FaceManager::changeVideoSourceLive()
 bool FaceManager::deleteFaceDB(string userId, string faceId)
 {
     std::cout << "deleteFace: " << userId << " / " << faceId << endl;
-    // TODO
-    // 1.delete facelist and update DB
-    // uid -> student name
     string temp_line;
     vector<faceData> v_fd = readFaceDB();
     ifstream face_db_read("./facelist_read");
@@ -328,16 +338,12 @@ bool FaceManager::deleteFaceDB(string userId, string faceId)
     return false;
     // TODO : update AI handler
     // TODO : write data to db file
-    // 2.update(reload) FaceManager (AI handler)
     return true;
 }
 
 bool FaceManager::addFaceDB(string userId, string faceId)
 {
     std::cout << "addFaceDB: " << userId << " / " << faceId << endl;
-    // TODO
-    // 1.add FaceList and update DB
-    // uid -> student name
     string temp_line;
     vector<faceData> v_fd = readFaceDB();
     ifstream face_db_read("./facelist_read");
@@ -373,7 +379,7 @@ bool FaceManager::addFaceDB(string userId, string faceId)
             return true;
         }
     }
-    return false;
+    // return false;
     // TODO : update(reload) AI handler
     // TODO : write data to db file
     return true;
