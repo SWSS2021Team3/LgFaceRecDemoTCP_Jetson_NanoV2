@@ -533,7 +533,7 @@ void* SecurityManager::getSecureNeworkContext() {
     SSL_CTX* ctx = SSL_CTX_new(meth);
     const char* cipher_list = "TLS_AES_128_GCM_SHA256";
 
-    if (1 != SSL_CTX_set_cipher_list(ctx, cipher_list)) {
+    if (1 != SSL_CTX_set_ciphersuites(ctx, cipher_list)) {
         SSL_CTX_free(ctx);
         return nullptr;
     }
