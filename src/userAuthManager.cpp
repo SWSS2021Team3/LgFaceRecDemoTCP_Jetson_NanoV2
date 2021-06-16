@@ -130,7 +130,7 @@ bool UserAuthManager::verifyUser(string userid, string passwd) {
     //cout << ">>>> pass : " << (unsigned char*)passwd.c_str() << endl;
     size_t passLen = strlen(passwd.c_str());
 
-    mSecurityManager->makeHashA((unsigned char*)passwd.c_str(), strlen(passwd.c_str()), hashedPW, &outLen);
+    mSecurityManager->makeHashStr((unsigned char*)passwd.c_str(), strlen(passwd.c_str()), hashedPW, &outLen);
     //cout << "hashed pw = " << hashedPW << endl;
     if (mIsFound) {
 		return !strncasecmp((const char*)hashedPW, mCurrentUserData.password.c_str(), pLen);
