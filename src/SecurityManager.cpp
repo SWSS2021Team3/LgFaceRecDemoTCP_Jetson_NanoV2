@@ -517,13 +517,13 @@ int SecurityManager::makeHash(unsigned char* buffer, size_t bufferSize, unsigned
     return 0;
 }
 
-int SecurityManager::makeHashA(unsigned char* buffer, size_t bufferSize, unsigned char* out, size_t* outLen) {
-    *outLen = SHA256_DIGEST_LENGTH;
+int SecurityManager::makeHashStr(unsigned char* buffer, size_t bufferSize, unsigned char* out, size_t* outLen) {
+    *outLen = SHA256_DIGEST_LENGTH * 2;
     sha256_evp(buffer, out, bufferSize);
     //std::cout << "out=" << out << std::endl;
-    std::string hexString = GetHexString(std::string(reinterpret_cast<char*>(out), *outLen));
+    std::string hexString = GetHexString(std::string(reinterpret_cast<char*>(out), bufferSize));
     //std::cout << "hexString = " << hexString << std::endl;
-    memcpy(out, hexString.c_str(), (*outLen) * 2);
+    memcpy(out, hexString.c_str(), hexString.size());
     return 0;
 }
 

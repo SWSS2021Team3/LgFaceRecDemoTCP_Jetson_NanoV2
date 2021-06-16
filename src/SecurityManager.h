@@ -33,7 +33,7 @@ class SecurityManager
     int readEngine(unsigned char* buffer, size_t bufferSize, size_t* readLen);
 
     int makeHash(unsigned char* buffer, size_t bufferSize, unsigned char* out, size_t* outLen);
-    int makeHashA(unsigned char* buffer, size_t bufferSize, unsigned char* out, size_t* outLen);
+    int makeHashStr(unsigned char* buffer, size_t bufferSize, unsigned char* out, size_t* outLen);
 
     void* getSecureNeworkContext();
     int resetSecureNetwork(void* p);
