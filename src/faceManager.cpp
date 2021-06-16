@@ -27,6 +27,7 @@ FaceManager::~FaceManager()
     // instance from init()
     delete mtCNN;
     delete faceNet;
+    delete videoStreamer;
 }
 
 bool FaceManager::init()
@@ -252,6 +253,27 @@ void FaceManager::sendFaceImages(string userId)
 
 void FaceManager::stop()
 {
+}
+
+void FaceManager::changeVideoSource(string filename)
+{
+    videoStreamer->release();
+    delete videoStreamer;
+
+    videoStreamer = new VideoStreamer("../" + filename, videoFrameWidth, videoFrameHeight);
+    useCamera = false;
+    rotate180 = false;
+}
+
+void FaceManager::changeVideoSourceLive()
+{
+    videoStreamer->release();
+    delete videoStreamer;
+
+    bool isCSICam = true;
+    videoStreamer = new VideoStreamer(0, videoFrameWidth, videoFrameHeight, 60, isCSICam);
+    useCamera = true;
+    rotate180 = true;
 }
 
 bool FaceManager::deleteFaceDB(string userId, string faceId)

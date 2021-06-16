@@ -19,7 +19,9 @@ enum class Command
     ADD_FACE,
     LOGIN,
     VIDEO,
-    DISCONNECT
+    DISCONNECT,
+    CHANGE_VIDEO_SRC,
+    CHANGE_VIDEO_LIVE
 };
 
 class CommandMessage
@@ -55,7 +57,6 @@ private:
     TTcpConnectedPort *TcpConnectedPort;
     pthread_mutex_t sendMutex;
 
-    FaceManager* lFaceManager;
     SecurityManager* lSecurityManager;
     pthread_mutex_t recvMutex;
     std::queue<CommandMessage> commandQueue;

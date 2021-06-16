@@ -288,7 +288,6 @@ bool CommManager::do_loop(FaceManager *faceManager)
     auto globalTimeStart = chrono::steady_clock::now();
     UserAuthManager *userAuthManager = new UserAuthManager(lSecurityManager);
 
-    lFaceManager = faceManager;
     int status;
     pthread_t tid;
     if ((status = pthread_create(&tid, NULL, &receiverFunc, (void *)this)) != 0)
@@ -372,6 +371,18 @@ bool CommManager::do_loop(FaceManager *faceManager)
             {
                 std::cout << "control VIDEO " << cmdMsg.param << std::endl;
                 faceManager->playVideo(cmdMsg.param);
+                break;
+            }
+            case Command::CHANGE_VIDEO_SRC:
+            {
+                std::cout << "change video source " << cmdMsg.param << std::endl;
+                faceManager->changeVideoSource(cmdMsg.param);
+                break;
+            }
+            case Command::CHANGE_VIDEO_LIVE:
+            {
+                std::cout << "change video live" << std::endl;
+                faceManager->changeVideoSourceLive();
                 break;
             }
             case Command::DISCONNECT:
@@ -504,6 +515,22 @@ void CommManager::receive()
             std::cout << "SIGNAL_FM_REQ_DISCONNECT" << std::endl;
             pthread_mutex_lock(&recvMutex);
             commandQueue.push(CommandMessage(Command::DISCONNECT));
+            pthread_mutex_unlock(&recvMutex);
+            break;
+        }
+        case SIGNAL_FM_REQ_VIDEO_RECORD:
+        {
+            std::cout << "SIGNAL_FM_REQ_VIDEO_RECORD" << std::endl;
+            pthread_mutex_lock(&recvMutex);
+            commandQueue.push(CommandMessage(Command::CHANGE_VIDEO_SRC, payload.str1));
+            pthread_mutex_unlock(&recvMutex);
+            break;
+        }
+        case SIGNAL_FM_REQ_VIDEO_LIVE:
+        {
+            std::cout << "SIGNAL_FM_REQ_VIDEO_LIVE" << std::endl;
+            pthread_mutex_lock(&recvMutex);
+            commandQueue.push(CommandMessage(Command::CHANGE_VIDEO_LIVE));
             pthread_mutex_unlock(&recvMutex);
             break;
         }

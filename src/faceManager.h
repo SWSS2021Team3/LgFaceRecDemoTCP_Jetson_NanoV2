@@ -48,6 +48,8 @@ public:
     bool processFrame();
     bool registerFace(string userId, int numberOfFaces);
     void playVideo(string status);
+    void changeVideoSource(string filename);
+    void changeVideoSourceLive();
     void stop();
     bool deleteFaceDB(string userId, string faceId);
     bool addFaceDB(string userId, string faceId);
