@@ -472,10 +472,7 @@ void CommManager::receive()
         {
             std::cout << "SIGNAL_FM_REQ_LOGIN" << endl;
             pthread_mutex_lock(&recvMutex);
-            string userid, password;
-            // TODO: get userid, password from payload
-
-            commandQueue.push(CommandMessage(Command::LOGIN, userid, password));
+            commandQueue.push(CommandMessage(Command::LOGIN, payload.str1, payload.str2));
             pthread_mutex_unlock(&recvMutex);
             break;
         }
