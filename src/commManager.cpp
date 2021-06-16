@@ -240,16 +240,16 @@ bool CommManager::sendFace(cv::Mat &frame)
     return ret >= 0;
 }
 
-bool CommManager::sendLoginResp(bool result_ok, bool is_admin)
+bool CommManager::sendLoginResp(bool result_ok, int uid)
 {
     pthread_mutex_lock(&sendMutex);
 
     if (result_ok)
     {
-        if (is_admin)
+        if (uid == 0)
         {
             std::cout << "administrator login" << endl;
-            if (!sendCommand(SIGNAL_FM_RESP_LOGIN_OK, "admin"))
+            if (!sendCommand(SIGNAL_FM_RESP_LOGIN_OK, uid, "admin"))
             {
                 pthread_mutex_unlock(&sendMutex);
                 return false;
@@ -258,13 +258,13 @@ bool CommManager::sendLoginResp(bool result_ok, bool is_admin)
         else
         {
             std::cout << "user login" << endl;
-            if (!sendCommand(SIGNAL_FM_RESP_LOGIN_OK))
+            if (!sendCommand(SIGNAL_FM_RESP_LOGIN_OK, uid))
             {
                 pthread_mutex_unlock(&sendMutex);
                 return false;
             }
         }
-   }
+    }
     else
     {
         if (!sendCommand(SIGNAL_FM_RESP_LOGIN_FAILED))
@@ -364,7 +364,6 @@ bool CommManager::do_loop(FaceManager *faceManager)
                 string password = cmdMsg.password;
                 bool loginResult = userAuthManager->verifyUser(userid, password);
                 std::cout << "login result : " << loginResult << endl;
-                bool isAdmin = false;
 
                 // send response payload with login result
                 int uid = userAuthManager->getCurrentUid();
@@ -372,12 +371,8 @@ bool CommManager::do_loop(FaceManager *faceManager)
                 {
                     // set uid to faceManager here
                     faceManager->setCurrentUid(to_string(uid));
-                    if (uid == 0)
-                    {
-                        isAdmin = true;
-                    }
                 }
-                sendLoginResp(loginResult, isAdmin);
+                sendLoginResp(loginResult, uid);
                 break;
             }
             case Command::VIDEO:
