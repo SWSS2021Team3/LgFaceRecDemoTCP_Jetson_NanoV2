@@ -25,6 +25,10 @@ void UserAuthManager::resetCurrentUser() {
 
 void UserAuthManager::loadUserDB() {
     cout << "[UserAuthManager] loadUserDB" << endl;
+    if (mSecurityManager == NULL) {
+        cout << "security manager is null" << endl;
+        return;
+    }
     size_t readSize;
     size_t readLen;
 
@@ -49,8 +53,11 @@ void UserAuthManager::loadUserDB() {
 
 int UserAuthManager::saveUserDB() {
     cout << "[UserAuthManager] saveUserDB" << endl;
+    if (mSecurityManager == NULL) {
+        cout << "security manager is null" << endl;
+        return -1;
+    }
     size_t writeLen;
-    int ret = -1;
 
     size_t totalSizeDB = 0;
     for (int i=0; i<NUM_USERS; i++) {
@@ -71,8 +78,11 @@ int UserAuthManager::saveUserDB() {
         wittenSize += sSize;
     }
 
-    mSecurityManager->writeUserDB(writeBuf, totalSizeDB, &writeLen);
-    cout << "ret = " << ret << endl;
+    int ret = mSecurityManager->writeUserDB(writeBuf, totalSizeDB, &writeLen);
+    if (ret < 0) {
+        cout << "failed to write UserDB" << endl;
+        return ret;
+    }
     cout << "writeLen = " << writeLen << endl;
 
 // read test +++++++++++++
@@ -108,7 +118,11 @@ bool UserAuthManager::findUserFromDB(string userid) {
 
 bool UserAuthManager::verifyUser(string userid, string passwd) {
     resetCurrentUser();
-	size_t iLen = strlen(userid.c_str());
+	if (mSecurityManager == NULL) {
+        cout << "security manager is null" << endl;
+        return false;
+    }
+    size_t iLen = strlen(userid.c_str());
 	if (iLen > LIMIT_ID_LENGTH) {
 		cout << "invalid id length" << endl;
 		return false;
