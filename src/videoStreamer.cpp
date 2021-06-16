@@ -85,4 +85,5 @@ void VideoStreamer::release()
 
 VideoStreamer::~VideoStreamer()
 {
+	delete m_capture;
 }
