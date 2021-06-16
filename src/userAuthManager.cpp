@@ -1,11 +1,10 @@
 #include "userAuthManager.h"
 #include "SecurityManager.h"
 #include <iostream>
-//#include <cstring>
 
 using namespace std;
 
-SerializedUserData sUserDB[NUM_STUDENTS];
+SerializedUserData sUserDB[NUM_USERS];
 
 UserAuthManager::UserAuthManager(SecurityManager* securityManager) : mSecurityManager(securityManager) {
     resetCurrentUser();
@@ -39,7 +38,7 @@ void UserAuthManager::loadUserDB() {
     }
 
     unsigned char* pbuf = readData;
-    for (int i=0; i<NUM_STUDENTS; i++) {
+    for (int i=0; i<NUM_USERS; i++) {
         sUserDB[i].deserialize((const char*)pbuf);
         pbuf += sUserDB[i].serialize_size();
         //cout << "()()()()userID: " << sUserDB[i].userID << endl;
@@ -54,14 +53,14 @@ int UserAuthManager::saveUserDB() {
     int ret = -1;
 
     size_t totalSizeDB = 0;
-    for (int i=0; i<NUM_STUDENTS; i++) {
+    for (int i=0; i<NUM_USERS; i++) {
         totalSizeDB += sUserDB[i].serialize_size();
     }
     cout << "totalSizeDB = " << totalSizeDB << endl;
     unsigned char writeBuf[totalSizeDB];
 
     size_t wittenSize = 0;
-    for (int i=0; i<NUM_STUDENTS; i++) {
+    for (int i=0; i<NUM_USERS; i++) {
         //cout << "sUser id " << i << ": " << sUserDB[i].userID << endl;
         //cout << "sUser pw " << i << ": " << sUserDB[i].password << endl;
         //cout << "sUser uid " << i << ": " << sUserDB[i].uid << endl;
@@ -78,10 +77,10 @@ int UserAuthManager::saveUserDB() {
 
 // read test +++++++++++++
 /*
-    SerializedUserData ruser[NUM_STUDENTS];
+    SerializedUserData ruser[NUM_USERS];
 
     unsigned char* pbuf = writeBuf;
-    for (int i=0; i<NUM_STUDENTS; i++) {
+    for (int i=0; i<NUM_USERS; i++) {
         ruser[i].deserialize((const char*)pbuf);
         pbuf+= ruser[i].serialize_size();
         cout << "()()()()userID: " << ruser[i].userID << endl;
@@ -94,7 +93,7 @@ int UserAuthManager::saveUserDB() {
 }
 
 bool UserAuthManager::findUserFromDB(string userid) {
-    for (int i=0; i<NUM_STUDENTS; i++) {
+    for (int i=0; i<NUM_USERS; i++) {
         //cout << ">>> " << sUserDB[i].userID << endl;
 		if (!strcmp(sUserDB[i].userID.c_str(), userid.c_str())) {
 			mCurrentUserData.userID = sUserDB[i].userID;

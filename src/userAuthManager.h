@@ -2,7 +2,7 @@
 #include <string>
 #include <cstring>
 
-#define NUM_STUDENTS 8
+#define NUM_USERS 9
 #define LIMIT_ID_LENGTH 20
 #define LIMIT_PW_LENGTH 64
 
