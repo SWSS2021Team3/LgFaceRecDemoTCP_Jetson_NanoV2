@@ -541,6 +541,20 @@ void* SecurityManager::getSecureNeworkContext() {
         SSL_CTX_free(ctx);
         return nullptr;
     }
+#ifdef USE_USB_KEY
+    if (1 != SSL_CTX_use_certificate_chain_file(ctx, "/mnt/usb/cert/server.crt")) {
+        SSL_CTX_free(ctx);
+        return nullptr;
+    }
+    if (1 != SSL_CTX_use_PrivateKey_file(ctx, "/mnt/usb/cert/server.key", SSL_FILETYPE_PEM)) {
+        SSL_CTX_free(ctx);
+        return nullptr;
+    }
+    if (1 != SSL_CTX_load_verify_locations(ctx, "/mnt/usb/cert/rootca.crt", NULL)) {
+        SSL_CTX_free(ctx);
+        return nullptr;
+    }
+#else
     if (1 != SSL_CTX_use_certificate_chain_file(ctx, "../server.crt")) {
         SSL_CTX_free(ctx);
         return nullptr;
@@ -553,6 +567,7 @@ void* SecurityManager::getSecureNeworkContext() {
         SSL_CTX_free(ctx);
         return nullptr;
     }
+#endif
     if (1 != SSL_CTX_check_private_key(ctx)) {
         SSL_CTX_free(ctx);
         return nullptr;
@@ -570,25 +585,35 @@ void* SecurityManager::getSecureNeworkContext() {
     return reinterpret_cast<void*>(ssl);
 }
 int SecurityManager::resetSecureNetwork(void* p) {
-    return SSL_clear(reinterpret_cast<SSL*>(p));
+    if (p != nullptr) {
+        return SSL_clear(reinterpret_cast<SSL*>(p));
+    }
+    return 0;
 }
 int SecurityManager::shutdownSecureNetwork(void* p) {
-    return SSL_shutdown(reinterpret_cast<SSL*>(p));
+    if (p != nullptr) {
+        return SSL_shutdown(reinterpret_cast<SSL*>(p));
+    }
+    return 0;
 }
 int SecurityManager::freeSecureNetworkContext(void* p) {
-    std::cout << "try to free ssl connect" << std::endl;
-    SSL_free(reinterpret_cast<SSL*>(p));
-    SSL_CTX_free(reinterpret_cast<SSL_CTX*>(secureNetworkContext));
-    std::cout << "--> complete to free ssl connect" << std::endl;
+    if (p != nullptr) {
+        std::cout << "try to free ssl connect" << std::endl;
+        SSL_free(reinterpret_cast<SSL*>(p));
+        SSL_CTX_free(reinterpret_cast<SSL_CTX*>(secureNetworkContext));
+        std::cout << "--> complete to free ssl connect" << std::endl;
+    }
     return 1;
 }
 
 int SecurityManager::setSecureNetwork(void* p, int sd) {
-    std::cout << "try to make ssl connect" << std::endl;
-    SSL* ssl = reinterpret_cast<SSL*>(p);
-    SSL_set_fd(ssl, sd);
-    SSL_accept(ssl);
-    std::cout << "--> complete to make ssl connect" << std::endl;
+    if (p != nullptr) {
+        std::cout << "try to make ssl connect" << std::endl;
+        SSL* ssl = reinterpret_cast<SSL*>(p);
+        SSL_set_fd(ssl, sd);
+        SSL_accept(ssl);
+        std::cout << "--> complete to make ssl connect" << std::endl;
+    }
     return 1;
 }
 
@@ -624,6 +649,29 @@ int SecurityManager::readKey() {
     hashMtCnn["det3_relu.caffemodel"] = "f5bf43cd05feea8fb5f7250dcc610065308e66f44b1fb2cd956bfcd43ae58c79";
     hashMtCnn["det3_relu.prototxt"] = "59f75d1ca76a78333646ff7d6c92e5866f187831f3579345ab7b62406efccf7e";
 
+#ifdef USE_USB_KEY
+    std::cout << "Read Secure Memory" << std::endl;
+    std::cout << "Read Secure Memory" << std::endl;
+    std::cout << "Read Secure Memory" << std::endl;
+    symmetricKey["videodb"] = readFile("/mnt/usb/db/videodb.cipherkey"); //128bit aes key
+    symmetricKey["facedb"] = readFile("/mnt/usb/db/facedb.cipherkey"); 
+    symmetricKey["userdb"] = readFile("/mnt/usb/db/userdb.cipherkey"); 
+    iv["videodb"] = readFile("/mnt/usb/db/videodb.iv");
+    iv["facedb"] = readFile("/mnt/usb/db/facedb.iv");
+    iv["userdb"] = readFile("/mnt/usb/db/userdb.iv");
+    asymmetricKey["videodb"] = readFile("/mnt/usb/cert/videodb.key");
+    asymmetricKey["userdb"] = readFile("/mnt/usb/cert/userdb.key");
+    asymmetricKey["facedb"] = readFile("/mnt/usb/cert/facedb.key");
+    asymmetricKey["server"] =  readFile("/mnt/usb/cert/server.key");
+    certificate["videodb"] = readFile("/mnt/usb/cert/videodb.crt");
+    certificate["userdb"] =  readFile("/mnt/usb/cert/userdb.crt");
+    certificate["facedb"] = readFile("/mnt/usb/cert/facedb.crt");
+    certificate["rootca"] = readFile("/mnt/usb/cert/rootca.crt");
+    certificate["server"] = readFile("/mnt/usb/cert/server.crt");
+#else
+    std::cout << "Read Un-Secure Memory. compile with \"add_definitions(-DUSE_USB_KEY)\" at CMakeList.txt" << std::endl;
+    std::cout << "Read Un-Secure Memory. compile with \"add_definitions(-DUSE_USB_KEY)\" at CMakeList.txt" << std::endl;
+    std::cout << "Read Un-Secure Memory. compile with \"add_definitions(-DUSE_USB_KEY)\" at CMakeList.txt" << std::endl;
     symmetricKey["videodb"] = readFile("../videodb.cipherkey"); //128bit aes key
     symmetricKey["facedb"] = readFile("../facedb.cipherkey"); 
     symmetricKey["userdb"] = readFile("../userdb.cipherkey"); 
@@ -639,7 +687,7 @@ int SecurityManager::readKey() {
     certificate["facedb"] = readFile("../facedb.crt");
     certificate["rootca"] = readFile("../rootca.crt");
     certificate["server"] = readFile("../server.crt");
-    
+#endif
     healthy = CheckKeyExist(hashFaceNet);
     healthy &= CheckKeyExist(hashMtCnn);
     healthy &= CheckKeyExist(symmetricKey);
