@@ -1,4 +1,6 @@
 //design pattern: facade pattern
+#ifndef _SECURITY_MANAGER_H
+#define _SECURITY_MANAGER_H
 #pragma once
 #include <unordered_map>
 #include <string>
@@ -59,3 +61,5 @@ class SecurityManager
     void debug_print_size();
     void debug_verify_db();
 };
+
+#endif // _SECURITY_MANAGER_H

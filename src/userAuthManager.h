@@ -1,12 +1,11 @@
 
 #include <string>
 #include <cstring>
+#include "SecurityManager.h"
 
 #define NUM_USERS 9
 #define LIMIT_ID_LENGTH 20
 #define LIMIT_PW_LENGTH 64
-
-class SecurityManager;
 
 class SerializableUserIF
 {

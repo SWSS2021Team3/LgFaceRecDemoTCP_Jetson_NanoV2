@@ -98,9 +98,9 @@ int main(int argc, char *argv[])
   commManager = new CommManager(portNumber, portNumberSecured, secuManager);
 
   if (argc == 2)
-    faceManager = new FaceManager(commManager);
+    faceManager = new FaceManager(commManager, secuManager);
   else
-    faceManager = new FaceManager(commManager, argv[2]);
+    faceManager = new FaceManager(commManager, argv[2], secuManager);
 
   if (!faceManager->init())
     return 1;

@@ -9,9 +9,9 @@
 #include "TcpSendRecvCmd.h"
 #include "MSG_DB.h"
 #include "Payload.h"
+#include "SecurityManager.h"
 
 class FaceManager;
-class SecurityManager;
 
 enum class Command
 {

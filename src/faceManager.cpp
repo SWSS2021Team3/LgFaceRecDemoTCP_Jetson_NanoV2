@@ -5,15 +5,14 @@
 #include <cstring>
 #include <string>
 
-FaceManager::FaceManager(CommManager *comm) : useCamera(true), rotate180(true), commManager(comm)
+FaceManager::FaceManager(CommManager *comm, SecurityManager *securityManager) : useCamera(true), rotate180(true), commManager(comm), lSecurityManager(securityManager)
 {
     bool isCSICam = true;
-
     // init opencv stuff
     videoStreamer = new VideoStreamer(0, videoFrameWidth, videoFrameHeight, 60, isCSICam);
 }
 
-FaceManager::FaceManager(CommManager *comm, const char *filename) : useCamera(false), rotate180(false), commManager(comm)
+FaceManager::FaceManager(CommManager *comm, const char *filename, SecurityManager *securityManager) : useCamera(false), rotate180(false), commManager(comm), lSecurityManager(securityManager)
 {
     // init opencv stuff
     videoStreamer = new VideoStreamer(filename, videoFrameWidth, videoFrameHeight);mCurrentUid = -1;
@@ -63,7 +62,7 @@ bool FaceManager::init()
 
 bool FaceManager::loadFaceNet()
 {
-    std::cout << "loadFaceNet" << std::endl;
+    std::cout << "[FaceManager] loadFaceNet" << std::endl;
     if(faceNet != NULL && mtCNN != NULL)
     {
         //init Bbox and allocate memory for "maxFacesPerScene" faces per scene
@@ -125,7 +124,7 @@ bool FaceManager::processFrame()
     videoStreamer->getFrame(frame);
     if (frame.empty())
     {
-        std::cout << "Empty frame! Exiting...\n Try restarting nvargus-daemon by "
+        std::cout << "[FaceManager]Empty frame! Exiting...\n Try restarting nvargus-daemon by "
                      "doing: sudo systemctl restart nvargus-daemon"
                   << std::endl;
         return false;
@@ -194,7 +193,7 @@ bool FaceManager::registerFace(string userId, int numberOfImages)
             // TODO: what if frame is empty??
             if (frame.empty())
             {
-                std::cout << "frame is empty" << std::endl;
+                std::cout << "[FaceManager]frame is empty" << std::endl;
                 break;
             }
 
@@ -215,7 +214,7 @@ bool FaceManager::registerFace(string userId, int numberOfImages)
         }
         if (!faceDetected) // timeout
         {
-            std::cout << "no face detected in camera." << std::endl;
+            std::cout << "[FaceManager]no face detected in camera." << std::endl;
             return false;
         }
 
@@ -226,7 +225,7 @@ bool FaceManager::registerFace(string userId, int numberOfImages)
         auto now = std::chrono::system_clock::now();
         string timestamp = to_string(std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count());
         string faceId = userId + timestamp;
-        std::cout << "faceId Created with userId + timestamp = " << faceId << std::endl;
+        std::cout << "[FaceManager] faceId Created with userId + timestamp = " << faceId << std::endl;
         if (!addFaceDB(userId,faceId))
             return false;
 
@@ -258,7 +257,7 @@ void FaceManager::sendFaceImages(string userId)
     for (int i = 0; i < len; i++)
     {
         string absPath = imagepath + "/" + face_list[i] + ".jpg";
-        std::cout << "loading " << i << " " << absPath << std::endl;
+        std::cout << "[FaceManager] loading " << i << " " << absPath << std::endl;
         loadInputImage(absPath, image, videoFrameWidth, videoFrameHeight);
         commManager->sendRegisteredFace(image);
     }
@@ -291,103 +290,68 @@ void FaceManager::changeVideoSourceLive()
 
 bool FaceManager::deleteFaceDB(string userId, string faceId)
 {
-    std::cout << "deleteFace: " << userId << " / " << faceId << endl;
-    string temp_line;
-    vector<faceData> v_fd = readFaceDB();
-    ifstream face_db_read("./facelist_read");
-    ofstream face_db_write("./facelist_write");
-    size_t pos = 0;
-    while(face_db_read.good())
+    std::cout << "[FaceManager] deleteFace: " << userId << " / " << faceId << endl;
+    for(int i=0; i<faceDB.size(); i++)
     {
-        getline(face_db_read, temp_line);
-        if(temp_line.size() == 0)
-            break;
-        // face_db_write << temp_line;
-        if((pos = temp_line.find(userId)) != std::string::npos)
+        if(!strncmp(faceDB[i].userId.c_str(), userId.c_str(), userId.size()))
         {
-            std::cout << "Find userId : " << userId << " pos : " << pos << endl;
-            if((pos = temp_line.find(faceId)) != std::string::npos)
+            for(int j=0; j<faceDB[i].faceId.size(); j++)
             {
-                std::cout << "Delte faceId : " << faceId << " pos : " << pos << endl;
-                temp_line.erase(pos-1, faceId.size()+1);    //Delete with white_space(ex. " abc")
+                std::cout << "[FaceManager] Find userId : " << userId << " faceId : " << faceId << " Delete." << endl;
+                faceDB[i].faceId.erase(faceDB[i].faceId.begin()+j);
             }
         }
-        face_db_write << temp_line;
-        face_db_write << "\n";
     }
-    face_db_read.close();
-    face_db_write.close();
-
-    for(int i=0; i<v_fd.size(); i++)    //for debug
-    {
-        if(!strncmp(v_fd[i].userID.c_str(), userId.c_str(), userId.size()))
-        {
-            std::cout << "Found Face List and add face list" << endl;
-            for(int j=0; j<v_fd[i].faceNumber.size(); j++)
-            {
-                std::cout << "List : " << v_fd[i].faceNumber[j] << endl;
-                if(!strncmp(v_fd[i].faceNumber[j].c_str(), faceId.c_str(), faceId.size()))
-                {
-                    std::cout << "Delete : " << v_fd[i].faceNumber[j] << endl;
-                    v_fd[i].faceNumber.erase(v_fd[i].faceNumber.begin(),v_fd[i].faceNumber.begin()+j);
-                }
-            }
-            return true;
-        }
-    }
-    return false;
-    // TODO : update AI handler
-    // TODO : write data to db file
+    if (!saveFaceDB())
+        return false;
+    // TODO: Serialize FaceDB
+    if (!loadFaceNet())
+        return false;
     return true;
+}
+
+bool FaceManager::saveFaceDB()
+{
+    std::cout << "[FaceManager] saveFaceDB" << endl;
+    char *buf = new char[SerializableP<vector<FaceData>>::serialize_size(faceDB)];
+    SerializableP<vector<FaceData>>::serialize(buf, faceDB);
+
+    size_t dataSize = SerializableP<vector<FaceData>>::serialize_size(faceDB);
+    size_t writeLen;
+    bool ret = false;
+
+    cout << "dataSize = " << dataSize << endl;
+
+    ret = lSecurityManager->writeFaceDB((unsigned char*)&buf, dataSize, &writeLen);
+    cout << "ret = " << ret << endl;
+    cout << "writeLen = " << writeLen << endl;
+
+    delete [] buf;
+	return ret;
 }
 
 bool FaceManager::addFaceDB(string userId, string faceId)
 {
-    std::cout << "addFaceDB: " << userId << " / " << faceId << endl;
-    string temp_line;
-    vector<faceData> v_fd = readFaceDB();
-    ifstream face_db_read("./facelist_read");
-    ofstream face_db_write("./facelist_write");
-    size_t pos = 0;
-    while(face_db_read.good())
+    std::cout << "[FaceManager] addFaceDB: " << userId << " / " << faceId << endl;
+    for(int i=0; i<faceDB.size(); i++)
     {
-        getline(face_db_read, temp_line);
-        if(temp_line.size() == 0)
-            break;
-        face_db_write << temp_line;
-        if(pos = temp_line.find(userId) != std::string::npos)
+        if(!strncmp(faceDB[i].userId.c_str(), userId.c_str(), userId.size()))
         {
-            std::cout << "Find userId : " << userId << " Add : " << faceId << endl;
-            face_db_write << " ";
-            face_db_write.write(faceId.c_str(),faceId.size());
-        }
-        face_db_write << "\n";
-    }
-    face_db_read.close();
-    face_db_write.close();
-
-    for(int i=0; i<v_fd.size(); i++)    //for debug
-    {
-        if(!strncmp(v_fd[i].userID.c_str(), userId.c_str(), userId.size()))
-        {
-            std::cout << "Found Face List and add face list" << endl;
-            v_fd[i].faceNumber.push_back(faceId);
-            for(int j=0; j<v_fd[i].faceNumber.size(); j++)
-            {
-                std::cout << "List : " << v_fd[i].faceNumber[j] << endl;
-            }
-            return true;
+            std::cout << "[FaceManager] Find userId : " << userId << " Add : " << faceId << endl;
+            faceDB[i].faceId.push_back(faceId);
         }
     }
-    // return false;
-    // TODO : update(reload) AI handler
-    // TODO : write data to db file
+    if (!saveFaceDB())
+        return false;
+    //TODO: Serialize FaceDB
+    if (!loadFaceNet())
+        return false;
     return true;
 }
 
 bool FaceManager::findUserFromDB(string userId)
 {
-    std::cout << "findUserFromDB: " << userId << endl;
+    std::cout << "[FaceManager] findUserFromDB: " << userId << endl;
 
     return true;
 }
@@ -401,16 +365,16 @@ void FaceManager::setCurrentUid(string userId) {
 vector<string> FaceManager::getFaceListFromDB(string userId)
 {
     vector<string> ret;
-    vector<faceData> v_fd = readFaceDB();
-    for(int i=0; i<v_fd.size(); i++)
+    // vector<FaceData> v_fd = readFaceDB();
+    for(int i=0; i<faceDB.size(); i++)
     {
-        if(!strncmp(v_fd[i].userID.c_str(), userId.c_str(), userId.size()))
+        if(!strncmp(faceDB[i].userId.c_str(), userId.c_str(), userId.size()))
         {
-            std::cout << "Found Face List" << endl;
-            ret = v_fd[i].faceNumber;
-            for(int i=0; i<ret.size(); i++)
+            std::cout << "[FaceManager] Found Face List" << endl;
+            ret = faceDB[i].faceId;
+            for(int i=0; i<ret.size(); i++) //DEBUG
             {
-                std::cout << "List : " << ret[i] << endl;
+                std::cout << "[FaceManager] List : " << ret[i] << endl;
             }
             return ret;
         }
@@ -418,52 +382,23 @@ vector<string> FaceManager::getFaceListFromDB(string userId)
     return ret; //return NULL
 }
 
-vector<faceData> FaceManager::readFaceDB()
+vector<FaceData>& FaceManager::readFaceDB()
 {
-    std::cout << "readFaceDB" << endl;
-    vector<faceData> _facelist;
+    std::cout << "[FaceManager] readFaceDB" << endl;
     
-    faceData fd;
-    string temp_line;
-    string temp_uid;
-    string temp_vid;
-    
-    ifstream face_db("./facelist"); //TODO : read from facedb
-    ofstream face_list("./facelist_read");
-    while(face_db.good())
-    {
-        getline(face_db, temp_line);
-        if(temp_line.size() == 0)
-            break;
-        face_list << temp_line;
-        face_list << "\n";  //Add new line
-        std::string delimiter = " ";
-        size_t pos = 0;
-        bool is_uid = true;
-        std::string token;
-        
-        while ((pos = temp_line.find(delimiter)) != std::string::npos) {
-            token = temp_line.substr(0, pos);
+    size_t readSize;
+    size_t readLen;
 
-            if(is_uid == true){
-                temp_uid = token;
-                fd.userID = temp_uid;
-                is_uid = false; //First token is UID
-            }
-            else{
-                temp_vid = token;
-                fd.faceNumber.push_back(temp_vid);
-            }
-            temp_line.erase(0, pos + delimiter.length());
-        }
-        //read last token
-        token = temp_line.substr(0, pos);
-        temp_vid = token;
-        fd.faceNumber.push_back(temp_vid);
-        _facelist.push_back(fd);
-        fd.faceNumber.clear();
+    readSize = lSecurityManager->getSizeFaceDB();
+    unsigned char* readData = new unsigned char[readSize];
+
+    int ret = lSecurityManager->readFaceDB(readData, readSize, &readLen);
+    if (ret < 0) {
+        cout << "[FaceManager] failed to read faceDB" << endl;
+        return faceDB;
     }
-    face_db.close();
-    face_list.close();
-    return _facelist;
+    //TODO: deserialize from DB feil to faceDB
+    SerializableP<vector<FaceData>>::deserialize(reinterpret_cast<const char*>(readData), faceDB);
+    delete [] readData;
+    return faceDB;
 }

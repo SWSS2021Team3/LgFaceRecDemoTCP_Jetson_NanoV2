@@ -12,11 +12,33 @@ struct faceData {
     std::vector<std::string> faceNumber;
 };
 
+class FaceData : public Serializable
+{
+public:
+	size_t serialize_size() const
+	{
+		return SerializableP<std::string>::serialize_size(userId) +
+			SerializableP<std::vector<std::string> >::serialize_size(faceId);
+	}
+	void serialize(char* buf) const
+	{
+		buf = SerializableP<std::string>::serialize(buf, userId);
+		buf = SerializableP<std::vector<std::string>>::serialize(buf, faceId);
+	}
+	void deserialize(const char* buf)
+	{
+		buf = SerializableP<std::string>::deserialize(buf, userId);
+		buf = SerializableP<std::vector<std::string>>::deserialize(buf, faceId);
+	}  
+  std::string userId;
+  std::vector<std::string> faceId;
+};
+
 class FaceManager
 {
 private:
     CommManager *commManager;
-
+    SecurityManager* lSecurityManager;
     // const int videoFrameWidth = 1280;
     // const int videoFrameHeight = 720;
     const int videoFrameWidth = 640;
@@ -35,14 +57,22 @@ private:
     int maxFacesPerScene;
 
     bool isVideoPlay = false;
+    
+    vector<FaceData> faceDB;
 
     void rotateFrame(cv::Mat &frame);
     void openRecordFile(const char *filename);
     void record(cv::Mat &frame);
-
+    bool deleteFaceDB(string userId, string faceId);
+    bool addFaceDB(string userId, string faceId);
+    bool findUserFromDB(string userId);
+    vector<string> getFaceListFromDB(string userId);
 public:
-    FaceManager(CommManager *comm);
-    FaceManager(CommManager *comm, const char *filename);
+    vector<FaceData>& readFaceDB();
+    bool saveFaceDB();
+    vector<FaceData>& getFaceDB() { return faceDB; }
+    FaceManager(CommManager *comm, SecurityManager* securityManager);
+    FaceManager(CommManager *comm, const char *filename, SecurityManager* securityManager);
     ~FaceManager();
     bool init();
     bool loadFaceNet();
@@ -53,13 +83,9 @@ public:
     void changeVideoSource(string filename);
     void changeVideoSourceLive();
     void stop();
-    bool deleteFaceDB(string userId, string faceId);
-    bool addFaceDB(string userId, string faceId);
+
     void sendFaceImages(string userId);
     void setCurrentUid(string userId);
-    bool findUserFromDB(string userId);
-    vector<string> getFaceListFromDB(string userId);
-    vector<faceData> readFaceDB();
 };
 
 #endif // _FACE_MANAGER_H
