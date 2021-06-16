@@ -326,7 +326,7 @@ bool FaceManager::saveFaceDB()
 
     cout << "dataSize = " << dataSize << endl;
 
-    ret = lSecurityManager->writeFaceDB((unsigned char*)&buf, dataSize, &writeLen);
+    ret = lSecurityManager->writeFaceDB((unsigned char*)buf, dataSize, &writeLen);
     cout << "ret = " << ret << endl;
     cout << "writeLen = " << writeLen << endl;
 
