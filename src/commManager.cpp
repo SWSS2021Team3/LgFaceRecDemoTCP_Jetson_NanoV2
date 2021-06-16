@@ -354,17 +354,12 @@ bool CommManager::do_loop(FaceManager *faceManager)
 
                 // send response payload with login result
                 int uid = userAuthManager->getCurrentUid();
-                if (uid < 0)
-                {
-                    std::cout << "failed to get user id from database" << endl;
-                    sendLoginResp(false);
-                }
-                else
+                if (uid >= 0)
                 {
                     // set uid to faceManager here
                     faceManager->setCurrentUid(to_string(uid));
-                    sendLoginResp(true);
                 }
+                sendLoginResp(loginResult);
                 break;
             }
             case Command::VIDEO:
