@@ -78,6 +78,10 @@ public:
     void receive();
     bool do_loop(FaceManager *faceManager);
     bool sendCommand(int cmd);
+    bool sendCommand(int cmd, std::string str);
+    bool sendCommand(int cmd, std::string str1, std::string str2);
+    bool sendCommand(int cmd, int v);
+    bool sendCommand(int cmd, int v, std::string str);
 };
 
 #endif // _COMM_MANAGER_H

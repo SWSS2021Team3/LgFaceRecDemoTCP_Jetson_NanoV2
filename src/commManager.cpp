@@ -198,7 +198,7 @@ bool CommManager::sendMatchedUser(std::string username)
 {
     pthread_mutex_lock(&sendMutex);
 
-    if (!sendCommand(SIGNAL_FM_RESP_USER_ATTEND))
+    if (!sendCommand(SIGNAL_FM_RESP_USER_ATTEND, username))
     {
         pthread_mutex_unlock(&sendMutex);
         return false;
@@ -506,7 +506,43 @@ bool CommManager::sendCommand(int cmd)
 {
     SerializablePayload payload;
     payload.data_id = cmd;
-    payload.i1 = 0;
+
+    return TcpSendObject(TcpConnectedPort, &payload) >= 0;
+}
+bool CommManager::sendCommand(int cmd, std::string str)
+{
+    SerializablePayload payload;
+    payload.data_id = cmd;
+    payload.str1 = str;
+
+    return TcpSendObject(TcpConnectedPort, &payload) >= 0;
+}
+
+bool CommManager::sendCommand(int cmd, std::string str1, std::string str2)
+{
+    SerializablePayload payload;
+    payload.data_id = cmd;
+    payload.str1 = str1;
+    payload.str2 = str2;
+
+    return TcpSendObject(TcpConnectedPort, &payload) >= 0;
+}
+
+bool CommManager::sendCommand(int cmd, int v)
+{
+    SerializablePayload payload;
+    payload.data_id = cmd;
+    payload.i1 = v;
+
+    return TcpSendObject(TcpConnectedPort, &payload) >= 0;
+}
+
+bool CommManager::sendCommand(int cmd, int v, std::string str)
+{
+    SerializablePayload payload;
+    payload.data_id = cmd;
+    payload.i1 = v;
+    payload.str1 = str;
 
     return TcpSendObject(TcpConnectedPort, &payload) >= 0;
 }
