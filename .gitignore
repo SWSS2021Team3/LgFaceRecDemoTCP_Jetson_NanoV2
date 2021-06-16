@@ -17,3 +17,7 @@ facenetModels/*
 !facenetModels/README.md
 
 *.engine
+
+# facedb
+facedb.bin
+facedb.sign
