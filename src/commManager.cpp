@@ -344,14 +344,14 @@ bool CommManager::do_loop(FaceManager *faceManager)
                 // TODO: get uid from payload
                 std::cout << "get-face" << std::endl;
                 // int uid = param;
-                faceManager->sendFaceImages("1" /*to_string(uid)*/);
+                faceManager->sendFaceImages(cmdMsg.userId);
                 break;
             }
             case Command::ADD_FACE:
             {
                 // TODO: get uid/num of pictures from payload
                 string userid = cmdMsg.userId;
-                if (!faceManager->registerFace("1",1/*number_of_faces*/))
+                if (!faceManager->registerFace(cmdMsg.userId, cmdMsg.n))
                 // if(!faceManager->deleteFaceDB("1","bbbb"))
                 {
                     std::cout << "[ERR] failed to Add face" << endl;
@@ -481,14 +481,14 @@ void CommManager::receive()
         case SIGNAL_FM_REQ_GET_FACES:
             std::cout << "SIGNAL_FM_REQ_GET_FACES" << endl;
             pthread_mutex_lock(&recvMutex);
-            commandQueue.push(CommandMessage(Command::GET_FACES, 11)); // TODO: user id
+            commandQueue.push(CommandMessage(Command::GET_FACES, payload.str1));
             pthread_mutex_unlock(&recvMutex);
             break;
         case SIGNAL_FM_REQ_FACE_ADD:
         {
             std::cout << "SIGNAL_FM_REQ_FACE_ADD" << endl;
             pthread_mutex_lock(&recvMutex);
-            commandQueue.push(CommandMessage(Command::ADD_FACE, 11));
+            commandQueue.push(CommandMessage(Command::ADD_FACE, payload.i1, payload.str1));
             pthread_mutex_unlock(&recvMutex);
             break;
         }

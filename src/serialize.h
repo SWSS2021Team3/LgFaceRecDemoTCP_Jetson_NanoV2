@@ -1,6 +1,5 @@
 #ifndef _SERIALIZE_H
 #define _SERIALIZE_H
-#include "serialize.h"
 #include <string.h>
 using namespace std;
 
