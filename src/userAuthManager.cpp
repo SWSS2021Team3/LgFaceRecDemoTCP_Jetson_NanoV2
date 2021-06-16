@@ -136,6 +136,10 @@ bool UserAuthManager::verifyUser(string userid, string passwd) {
 		cout << "unable to find user : " << userid << endl;
 		return false;
 	}
+    if (passwd == "") {
+        cout << "passwd is null" << endl;
+        return false;
+    }
 
     // make password digest using sha-256
     unsigned char hashedPW[LIMIT_PW_LENGTH] = {0,};
