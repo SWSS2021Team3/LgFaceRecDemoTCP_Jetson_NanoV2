@@ -1,34 +1,20 @@
 #include "userAuthManager.h"
 #include "SecurityManager.h"
 #include <iostream>
-#include <cstring>
+//#include <cstring>
 
 using namespace std;
 
-struct UserData UserDB[NUM_STUDENTS] = {
-	{"kyuwoon.kim", "FE758D46C0DF2F9D1C1A040CB666CC1B176AEC49CC82BF005D3ECA5C2501C10E", 0},
-	{"gyeonghun.ro", "D2CA35D606FF8CBA06839528D3DFA1E80D6F2D6C697C09A4A9FD0590974FC9B4", 1},
-	{"wonyoung.chang", "364A613EE71B94D9284DA520D7053DE55012731F3C590BB7BA2D8C55CC46BE65", 2},
-	{"soohyun.yi", "2FA60557BA96536E9AB739F6F84661CD23E662D0C3577A309A3BB8A299D49E57", 3},
-	{"hyejin.oh", "0C63D9C897C47C1FD2B9370E4335D05BB901ED03F2CC2CF1B9F55AB3409940DA", 4},
-	{"hyungjin.choi", "AE9AC2601930DA6FAC36A4F11E245470F0AB8D1887ECBF28B2BB7126A13890D4", 5},
-	{"vibhanshu.dhote", "359C2ED7EDAE76006EDB1A2F620F83636435EA780E9FA41150671640CF079ACC", 6},
-	{"cliff.huff", "0DD7E3B752B856287D76BD07BE7AEA96A46476221219257B4F8A90FBE44885CE", 7}
-};
-
+SerializedUserData sUserDB[NUM_STUDENTS];
 
 UserAuthManager::UserAuthManager(SecurityManager* securityManager) : mSecurityManager(securityManager) {
     resetCurrentUser();
-//    mSecurityManager = new SecurityManager();
-//    loadUserDB();
+    loadUserDB();
 }
 
 UserAuthManager::~UserAuthManager() {
-//    saveUserDB();
+//    saveUserDB(); // use when user changes passwd
     resetCurrentUser();
-    // if (mSecurityManager != NULL) {
-    //     delete mSecurityManager;
-    // }
 }
 
 void UserAuthManager::resetCurrentUser() {
@@ -52,36 +38,68 @@ void UserAuthManager::loadUserDB() {
         return;
     }
 
-    struct UserData* udata = (struct UserData*)readData;
-	for (int i=0; i<NUM_STUDENTS; i++) {
-        UserDB[i].userID = udata->userID;
-		UserDB[i].password = udata->password;
-        UserDB[i].uid = udata->uid;
-	}
+    unsigned char* pbuf = readData;
+    for (int i=0; i<NUM_STUDENTS; i++) {
+        sUserDB[i].deserialize((const char*)pbuf);
+        pbuf += sUserDB[i].serialize_size();
+        //cout << "()()()()userID: " << sUserDB[i].userID << endl;
+        //cout << "()()()()passwd: " << sUserDB[i].password << endl;
+        //cout << "()()()()uid: " << sUserDB[i].uid << endl;
+    }
 }
 
 int UserAuthManager::saveUserDB() {
     cout << "[UserAuthManager] saveUserDB" << endl;
-    size_t dataSize = sizeof(UserDB);
     size_t writeLen;
     int ret = -1;
 
-    cout << "dataSize = " << dataSize << endl;
+    size_t totalSizeDB = 0;
+    for (int i=0; i<NUM_STUDENTS; i++) {
+        totalSizeDB += sUserDB[i].serialize_size();
+    }
+    cout << "totalSizeDB = " << totalSizeDB << endl;
+    unsigned char writeBuf[totalSizeDB];
 
-    ret = mSecurityManager->writeUserDB((unsigned char*)&UserDB, dataSize, &writeLen);
+    size_t wittenSize = 0;
+    for (int i=0; i<NUM_STUDENTS; i++) {
+        //cout << "sUser id " << i << ": " << sUserDB[i].userID << endl;
+        //cout << "sUser pw " << i << ": " << sUserDB[i].password << endl;
+        //cout << "sUser uid " << i << ": " << sUserDB[i].uid << endl;
+        size_t sSize = sUserDB[i].serialize_size();
+        char* buf = new char[sSize];
+        sUserDB[i].serialize(buf);
+        memcpy(writeBuf+wittenSize, buf, sSize);
+        wittenSize += sSize;
+    }
+
+    mSecurityManager->writeUserDB(writeBuf, totalSizeDB, &writeLen);
     cout << "ret = " << ret << endl;
     cout << "writeLen = " << writeLen << endl;
 
+// read test +++++++++++++
+/*
+    SerializedUserData ruser[NUM_STUDENTS];
+
+    unsigned char* pbuf = writeBuf;
+    for (int i=0; i<NUM_STUDENTS; i++) {
+        ruser[i].deserialize((const char*)pbuf);
+        pbuf+= ruser[i].serialize_size();
+        cout << "()()()()userID: " << ruser[i].userID << endl;
+        cout << "()()()()passwd: " << ruser[i].password << endl;
+        cout << "()()()()uid: " << ruser[i].uid << endl;
+    }
+*/
+// read test -------------
 	return ret;
 }
 
 bool UserAuthManager::findUserFromDB(string userid) {
     for (int i=0; i<NUM_STUDENTS; i++) {
-        cout << ">>> " << UserDB[i].userID << endl;
-		if (!strcmp(UserDB[i].userID.c_str(), userid.c_str())) {
-			mCurrentUserData.userID = UserDB[i].userID;
-			mCurrentUserData.password = UserDB[i].password;
-			mCurrentUserData.uid = UserDB[i].uid;
+        //cout << ">>> " << sUserDB[i].userID << endl;
+		if (!strcmp(sUserDB[i].userID.c_str(), userid.c_str())) {
+			mCurrentUserData.userID = sUserDB[i].userID;
+			mCurrentUserData.password = sUserDB[i].password;
+			mCurrentUserData.uid = sUserDB[i].uid;
             mIsFound = true;
 			break;;
 		}
@@ -112,7 +130,7 @@ bool UserAuthManager::verifyUser(string userid, string passwd) {
     //cout << ">>>> pass : " << (unsigned char*)passwd.c_str() << endl;
     size_t passLen = strlen(passwd.c_str());
 
-    mSecurityManager->makeHashStr((unsigned char*)passwd.c_str(), strlen(passwd.c_str()), hashedPW, &outLen);
+    mSecurityManager->makeHashA((unsigned char*)passwd.c_str(), strlen(passwd.c_str()), hashedPW, &outLen);
     //cout << "hashed pw = " << hashedPW << endl;
     if (mIsFound) {
 		return !strncasecmp((const char*)hashedPW, mCurrentUserData.password.c_str(), pLen);
