@@ -188,6 +188,22 @@ bool FaceManager::registerFace(string userId, int numberOfImages)
     {
         bool faceDetected = false;
         int cnt = 0;
+
+        // Put faceId with current timestamp
+        // auto now = std::chrono::system_clock::now();
+        // string timestamp = to_string(std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count());
+        // string faceId = timestamp;
+        // faceId.erase(faceId.begin(),faceId.begin()+6);  //openCV vulnerbility (fileName should be ascii)
+        string faceId = "MJ23";
+        for(int i=0; i<faceDB.size(); i++)
+        {
+            if(!strncmp(faceDB[i].userId.c_str(), userId.c_str(), userId.size()))
+            {
+                int size = faceDB[i].faceId.size();
+                faceId += to_string(size);
+            }
+        }
+
         while (!faceDetected && cnt < 600)
         {
             videoStreamer->getFrame(frame);
@@ -211,9 +227,18 @@ bool FaceManager::registerFace(string userId, int numberOfImages)
             //     return false;
 
             //cv::imshow("VideoSource", frame);
-            faceDetected = faceNet->addNewFace(frame, outputBbox, croppedFace);
+            faceDetected = faceNet->addNewFace(frame, outputBbox, croppedFace, userId, faceId);
             cnt++;
         }
+
+        frame.release();
+        croppedFace.release();
+        for (int j=0; j< 60; j++)   //TODO : check
+        {
+            videoStreamer->getFrame(frame);
+            frame.release();
+        }
+
         if (!faceDetected) // timeout
         {
             std::cout << "[FaceManager]no face detected in camera." << std::endl;
@@ -223,24 +248,12 @@ bool FaceManager::registerFace(string userId, int numberOfImages)
         if (!commManager->sendFace(croppedFace))
             return false;
 
-        // Put faceId with current timestamp
-        auto now = std::chrono::system_clock::now();
-        string timestamp = to_string(std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count());
-        string faceId = userId + timestamp;
-        std::cout << "[FaceManager] faceId Created with userId + timestamp = " << faceId << std::endl;
+        std::cout << "[FaceManager] faceId Created with userId_timestamp = " << faceId << std::endl;
         if (!addFaceDB(userId,faceId))
             return false;
 
         if (!loadFaceNet())
             return false;
-        
-        frame.release();
-        croppedFace.release();
-        for (int j=0; j< 60; j++)
-        {
-            videoStreamer->getFrame(frame);
-            frame.release();
-        }
     }
 
     // frame.release();

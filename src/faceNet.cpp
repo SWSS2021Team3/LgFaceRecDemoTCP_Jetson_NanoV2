@@ -263,13 +263,13 @@ void FaceNetClassifier::featureMatching(cv::Mat &image, std::vector<std::string>
     }
 }
 
-bool FaceNetClassifier::addNewFace(cv::Mat &image, std::vector<struct Bbox> outputBbox, cv::Mat &croppedFace)
+bool FaceNetClassifier::addNewFace(cv::Mat &image, std::vector<struct Bbox> outputBbox, cv::Mat &croppedFace, const string userId, const string faceId)
 {
     std::cout << "Adding new person...\nPlease make sure there is only one face in the current frame.\n"
               << "What's your name? ";
-    string newName = "fixed-name";
+    string newName = faceId;
     // std::cin >> newName;
-    std::cout << "Hi " << newName << ", you will be added to the database.\n";
+    std::cout << "Hi " << userId << ", you will be added to the database.\n";
     if (forwardAddFace(image, outputBbox, newName))
     {
         for (struct Bbox &b : outputBbox)
@@ -289,6 +289,7 @@ bool FaceNetClassifier::addNewFace(cv::Mat &image, std::vector<struct Bbox> outp
             filePath.append(newName);
             filePath.append(".jpg");
             cv::imwrite(filePath, croppedFace);
+            std::cout << "Save face : " << filePath << endl;
             return true;
         }
     }

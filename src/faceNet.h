@@ -42,7 +42,7 @@ public:
     bool forwardAddFace(cv::Mat image, std::vector<struct Bbox> outputBbox, const string className);
     void forward(cv::Mat image, std::vector<struct Bbox> outputBbox);
     void featureMatching(cv::Mat &image, std::vector<std::string>& matchedUser);
-    bool addNewFace(cv::Mat &image, std::vector<struct Bbox> outputBbox, cv::Mat &croppedFace);
+    bool addNewFace(cv::Mat &image, std::vector<struct Bbox> outputBbox, cv::Mat &croppedFace, const string userId, const string faceId);
     void resetVariables();
 
 private:
