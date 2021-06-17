@@ -352,12 +352,20 @@ bool CommManager::do_loop(FaceManager *faceManager)
             }
             case Command::ADD_FACE:
             {
-                // TODO: get uid/num of pictures from payload
                 string userid = cmdMsg.userId;
                 if (!faceManager->registerFace(cmdMsg.userId, cmdMsg.n))
-                // if(!faceManager->deleteFaceDB("1","bbbb"))
                 {
                     std::cout << "[ERR] failed to Add face" << endl;
+                }
+                break;
+            }
+            case Command::DELETE_FACE:
+            {
+                string userId = cmdMsg.userId;
+                string faceId = "LastFace"; //Delete last face
+                if(!faceManager->deleteFaceDB(cmdMsg.userId,faceId))
+                {
+                    std::cout << "[ERR] failed to Delete face" << endl;
                 }
                 break;
             }
@@ -497,6 +505,9 @@ void CommManager::receive()
         }
         case SIGNAL_FM_REQ_FACE_DELETE:
             std::cout << "SIGNAL_FM_REQ_FACE_DELETE" << std::endl;
+            pthread_mutex_lock(&recvMutex);
+            commandQueue.push(CommandMessage(Command::DELETE_FACE, payload.str1));
+            pthread_mutex_unlock(&recvMutex);
             break;
         case SIGNAL_FM_REQ_LOGIN:
         {

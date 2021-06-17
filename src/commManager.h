@@ -17,6 +17,7 @@ enum class Command
 {
     GET_FACES,
     ADD_FACE,
+    DELETE_FACE,
     LOGIN,
     VIDEO,
     DISCONNECT,

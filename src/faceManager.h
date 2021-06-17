@@ -89,11 +89,11 @@ private:
     void rotateFrame(cv::Mat &frame);
     void openRecordFile(const char *filename);
     void record(cv::Mat &frame);
-    bool deleteFaceDB(string userId, string faceId);
     bool addFaceDB(string userId, string faceId);
     bool findUserFromDB(string userId);
     vector<string> getFaceListFromDB(string userId);
 public:
+    bool deleteFaceDB(string userId, string faceId);
     vector<FaceData>& readFaceDB();
     bool saveFaceDB();
     vector<FaceData>& getFaceDB() { return faceDB; }

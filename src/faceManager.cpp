@@ -312,11 +312,15 @@ bool FaceManager::deleteFaceDB(string userId, string faceId)
     {
         if(!strncmp(faceDB[i].userId.c_str(), userId.c_str(), userId.size()))
         {
-            for(int j=0; j<faceDB[i].faceId.size(); j++)
+            if(faceDB[i].faceId.size() <= 0)
+                return false;
+            std::cout << "[FaceManager] Find userId : " << userId << " Delete last face" << endl;
+            faceDB[i].faceId.pop_back();
+            /*for(int j=0; j<faceDB[i].faceId.size(); j++)
             {
                 std::cout << "[FaceManager] Find userId : " << userId << " faceId : " << faceId << " Delete." << endl;
                 faceDB[i].faceId.erase(faceDB[i].faceId.begin()+j);
-            }
+            }*/
         }
     }
     saveFaceDB(); //TODO : check return value
