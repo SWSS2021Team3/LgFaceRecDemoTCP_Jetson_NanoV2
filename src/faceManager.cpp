@@ -302,12 +302,18 @@ void FaceManager::stop()
 {
 }
 
+string inputValidate(string s)
+{   
+    return s;
+}
+
 void FaceManager::changeVideoSource(string filename)
 {
     videoStreamer->release();
     delete videoStreamer;
 
-    videoStreamer = new VideoStreamer("../" + filename, videoFrameWidth, videoFrameHeight);
+    filename = inputValidate(filename);
+    videoStreamer = new VideoStreamer(filename, videoFrameWidth, videoFrameHeight);
     useCamera = false;
     rotate180 = false;
 }
