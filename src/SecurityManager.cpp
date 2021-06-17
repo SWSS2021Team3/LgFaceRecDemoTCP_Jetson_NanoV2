@@ -544,7 +544,7 @@ void* SecurityManager::getSecureNeworkContext() {
         SSL_CTX_free(ctx);
         return nullptr;
     }
-#ifdef USE_USB_KEY
+
     if (1 != SSL_CTX_use_certificate_chain_file(ctx, "/mnt/usb/cert/server.crt")) {
         SSL_CTX_free(ctx);
         return nullptr;
@@ -557,20 +557,7 @@ void* SecurityManager::getSecureNeworkContext() {
         SSL_CTX_free(ctx);
         return nullptr;
     }
-#else
-    if (1 != SSL_CTX_use_certificate_chain_file(ctx, "../server.crt")) {
-        SSL_CTX_free(ctx);
-        return nullptr;
-    }
-    if (1 != SSL_CTX_use_PrivateKey_file(ctx, "../server.key", SSL_FILETYPE_PEM)) {
-        SSL_CTX_free(ctx);
-        return nullptr;
-    }
-    if (1 != SSL_CTX_load_verify_locations(ctx, "../rootca.crt", NULL)) {
-        SSL_CTX_free(ctx);
-        return nullptr;
-    }
-#endif
+
     if (1 != SSL_CTX_check_private_key(ctx)) {
         SSL_CTX_free(ctx);
         return nullptr;
@@ -655,7 +642,6 @@ int SecurityManager::readKey() {
     hashMtCnn["det3_relu.caffemodel"] = "f5bf43cd05feea8fb5f7250dcc610065308e66f44b1fb2cd956bfcd43ae58c79";
     hashMtCnn["det3_relu.prototxt"] = "59f75d1ca76a78333646ff7d6c92e5866f187831f3579345ab7b62406efccf7e";
 
-#ifdef USE_USB_KEY
     std::cout << "Read Secure Memory" << std::endl;
     std::cout << "Read Secure Memory" << std::endl;
     std::cout << "Read Secure Memory" << std::endl;
@@ -674,26 +660,7 @@ int SecurityManager::readKey() {
     certificate["facedb"] = readFile("/mnt/usb/cert/facedb.crt");
     certificate["rootca"] = readFile("/mnt/usb/cert/rootca.crt");
     certificate["server"] = readFile("/mnt/usb/cert/server.crt");
-#else
-    std::cout << "Read Un-Secure Memory. compile with \"add_definitions(-DUSE_USB_KEY)\" at CMakeList.txt" << std::endl;
-    std::cout << "Read Un-Secure Memory. compile with \"add_definitions(-DUSE_USB_KEY)\" at CMakeList.txt" << std::endl;
-    std::cout << "Read Un-Secure Memory. compile with \"add_definitions(-DUSE_USB_KEY)\" at CMakeList.txt" << std::endl;
-    symmetricKey["videodb"] = readFile("../videodb.cipherkey"); //128bit aes key
-    symmetricKey["facedb"] = readFile("../facedb.cipherkey"); 
-    symmetricKey["userdb"] = readFile("../userdb.cipherkey"); 
-    iv["videodb"] = readFile("../videodb.iv");
-    iv["facedb"] = readFile("../facedb.iv");
-    iv["userdb"] = readFile("../userdb.iv");
-    asymmetricKey["videodb"] = readFile("../videodb.key");
-    asymmetricKey["userdb"] = readFile("../userdb.key");
-    asymmetricKey["facedb"] = readFile("../facedb.key");
-    asymmetricKey["server"] =  readFile("../server.key");
-    certificate["videodb"] = readFile("../videodb.crt");
-    certificate["userdb"] =  readFile("../userdb.crt");
-    certificate["facedb"] = readFile("../facedb.crt");
-    certificate["rootca"] = readFile("../rootca.crt");
-    certificate["server"] = readFile("../server.crt");
-#endif
+
     healthy = CheckKeyExist(hashFaceNet);
     healthy &= CheckKeyExist(hashMtCnn);
     healthy &= CheckKeyExist(symmetricKey);

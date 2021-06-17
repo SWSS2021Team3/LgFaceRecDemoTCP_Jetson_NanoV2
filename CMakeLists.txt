@@ -30,8 +30,6 @@ if(CUDA_VERSION_MAJOR GREATER 9)
 
 endif()
 
-add_definitions(-DUSE_USB_KEY)
-
 set(CMAKE_CXX_FLAGS  "-Wno-deprecated-declarations")
 
 # tensorRT
