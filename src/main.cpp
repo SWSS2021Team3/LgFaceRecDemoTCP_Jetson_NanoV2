@@ -88,9 +88,15 @@ int main(int argc, char *argv[])
   }
 
   secuManager = new SecurityManager;
+  if (secuManager->readKey() <= 0) {
+    delete secuManager;
+    std::cerr << "Program exit. check usb keys" << std::endl;
+    exit(-1);
+  }
   if (secuManager->checkEngine("../facenetModels", "../mtCNNModels") != 0) {
-    //engine hash is changed
-    //abort server??? we need policy
+    delete secuManager;
+    std::cerr << "Program exit. check facenet and mtcnn model files." << std::endl;
+    exit(-1);
   }
 
   int portNumber = atoi(argv[1]);

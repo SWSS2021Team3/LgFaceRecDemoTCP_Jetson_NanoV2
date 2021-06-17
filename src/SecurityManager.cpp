@@ -15,7 +15,6 @@
 #include <openssl/evp.h>
 #include <openssl/pem.h>
 #include <openssl/cms.h>
-
 #include <openssl/ssl.h>
 
 const std::string SecurityManager::pathVideoDB = "../videodb.bin";
@@ -281,7 +280,6 @@ int cmsVerify(std::string &sign, std::string &content, std::string &rootca) {
 //public:
 SecurityManager::SecurityManager() : healthy(false), secureNetworkContext(nullptr)
 {
-    readKey();
 }
 
 SecurityManager::~SecurityManager()
@@ -416,15 +414,8 @@ size_t SecurityManager:: getSizeFaceDB() {
 size_t SecurityManager:: getSizeUserDB() {
     return getFileSize(pathUserDB);
 }
-    
-int SecurityManager::readVideoDB(unsigned char* buffer, size_t bufferSize, size_t* readLen) {
-    std::string dbenc = readFile(pathVideoDB);
-    std::string dbsign = readFile(pathVideoDBSign);
- 
-    //debug_print
-    std::cout << "videodbenc len:" << dbenc.size() << " hex:" << GetHexString(dbenc.substr(0, std::min((int)dbenc.size(), 32))) << std::endl;
-    std::cout << "videodbsign len:" << dbsign.size() << " hex:" << GetHexString(dbsign.substr(0, std::min((int)dbsign.size(), 32))) << std::endl;
 
+int SecurityManager::readDB(std::string &dbenc, std::string &dbsign, std::string &cipherkey, std::string &iv, std::string name, unsigned char *buffer, size_t bufferSize, size_t *readLen) {
     std::string &rootca = certificate["rootca"];
     if (dbenc.size() == 0 || dbsign.size() == 0 || rootca.size() == 0) {
         *readLen = 0;
@@ -433,19 +424,31 @@ int SecurityManager::readVideoDB(unsigned char* buffer, size_t bufferSize, size_
 
     int ret = cmsVerify(dbsign, dbenc, rootca);
     if(ret != 1) { 
-        std::cout << "videodb verify failed!!!" << std::endl;
+        std::cout << name << " verify failed!!!" << std::endl;
         return ret;
     }
-    std::cout << "videodb verify ok" << std::endl;
+    std::cout << name << " verify ok" << std::endl;
 
+    int len = decrypt_aes128cbc(dbenc.c_str(), dbenc.size(), cipherkey.c_str(), iv.c_str(), buffer);
+    if (len == 0) { return -2; }
+    *readLen = len;
+
+    std::cout << name << "dec len:" << bufferSize << " hex:" << GetHexString(std::string((char*)buffer, std::min(len, 32))) << std::endl;
+    return 1;
+}
+
+int SecurityManager::readVideoDB(unsigned char* buffer, size_t bufferSize, size_t* readLen) {
+    std::string dbenc = readFile(pathVideoDB);
+    std::string dbsign = readFile(pathVideoDBSign);
     std::string &cipherkey = symmetricKey["videodb"];
     std::string &cipheriv = iv["videodb"];
-    int len = decrypt_aes128cbc(dbenc.c_str(), dbenc.size(), cipherkey.c_str(), cipheriv.c_str(), buffer);
-    if (len == 0) { return -2; }
-    else { *readLen = len; }
+    std::string name = "videodb";
 
-    std::cout << "buffer len:" << bufferSize << " hex:" << GetHexString(std::string((char*)buffer, std::min(len, 32))) << std::endl;
-    return 1;
+    //debug_print
+    std::cout << name << " enc len:" << dbenc.size() << " hex:" << GetHexString(dbenc.substr(0, std::min((int)dbenc.size(), 32))) << std::endl;
+    std::cout << name << "sign len:" << dbsign.size() << " hex:" << GetHexString(dbsign.substr(0, std::min((int)dbsign.size(), 32))) << std::endl;
+    
+    return readDB(dbenc, dbsign, cipherkey, cipheriv, name, buffer, bufferSize, readLen);
 }
 int SecurityManager::readFaceDB(unsigned char* buffer, size_t bufferSize, size_t* readLen) {
     std::string dbenc = readFile(pathFaceDB);
@@ -507,7 +510,7 @@ int SecurityManager::readUserDB(unsigned char* buffer, size_t bufferSize, size_t
     return 1;
 }
 int SecurityManager::readEngine(unsigned char* buffer, size_t bufferSize, size_t* readLen) { 
-    //need to implement??
+    //no plan to implement
     return 0;
 }
 
@@ -598,21 +601,24 @@ int SecurityManager::shutdownSecureNetwork(void* p) {
 }
 int SecurityManager::freeSecureNetworkContext(void* p) {
     if (p != nullptr) {
-        std::cout << "try to free ssl connect" << std::endl;
+        std::cout << "try to free tls connect" << std::endl;
         SSL_free(reinterpret_cast<SSL*>(p));
         SSL_CTX_free(reinterpret_cast<SSL_CTX*>(secureNetworkContext));
-        std::cout << "--> complete to free ssl connect" << std::endl;
+        std::cout << "--> complete to free tls connect" << std::endl;
     }
     return 1;
 }
 
 int SecurityManager::setSecureNetwork(void* p, int sd) {
     if (p != nullptr) {
-        std::cout << "try to make ssl connect" << std::endl;
+        std::cout << "try to make tls connect" << std::endl;
         SSL* ssl = reinterpret_cast<SSL*>(p);
         SSL_set_fd(ssl, sd);
-        SSL_accept(ssl);
-        std::cout << "--> complete to make ssl connect" << std::endl;
+        int ret = SSL_accept(ssl);
+        if (ret <= 0) {
+            std::cerr << "--> fail to make tls connect" << std::endl;
+        }
+        std::cout << "--> complete to make tls connect" << std::endl;
     }
     return 1;
 }
@@ -707,7 +713,7 @@ int SecurityManager::readKey() {
     // std::cout << "asymmetricKey[\"videodb\"] : size:" << asymmetricKey["videodb"].size() << std::endl;
     // std::cout << "certificate[\"videodb\"] : size:" << certificate["videodb"].size() << std::endl;
     // std::cout << "certificate[\"rootca\"] : size:" << certificate["rootca"].size() << std::endl;
-    return 0;
+    return 1;
 }
 
 int SecurityManager::changeKey() { return 0;} //no plan to implement //unencrypt && generateKey && readKey && sign/enc

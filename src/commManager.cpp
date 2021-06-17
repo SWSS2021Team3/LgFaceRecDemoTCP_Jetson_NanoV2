@@ -166,6 +166,9 @@ void CommManager::acceptSecure()
         //make secure connection
         if (TcpConnectedPort->ssl == nullptr) {
             TcpConnectedPort->ssl = lSecurityManager->getSecureNeworkContext();
+            if (TcpConnectedPort->ssl == nullptr) {
+                std::cerr << "fail to make secure network context" << std::endl;
+            }
         }
         TcpConnectedPort->secureMode = true;
         lSecurityManager->setSecureNetwork(TcpConnectedPort->ssl, TcpConnectedPort->ConnectedFd);

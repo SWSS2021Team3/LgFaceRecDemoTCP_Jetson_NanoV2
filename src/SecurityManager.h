@@ -20,10 +20,11 @@ class SecurityManager
     SecurityManager();
     ~SecurityManager();
 
+    int readKey();
+    int checkEngine(const std::string facePath, std::string mtCnnPath);
     int writeVideoDB(unsigned char* buffer, size_t bufferSize, size_t* writeLen);
     int writeFaceDB(unsigned char* buffer, size_t bufferSize, size_t* writeLen);
     int writeUserDB(unsigned char* buffer, size_t bufferSize, size_t* writeLen);
-    int checkEngine(const std::string facePath, std::string mtCnnPath);
 
     size_t getSizeVideoDB();
     size_t getSizeFaceDB();
@@ -51,8 +52,9 @@ class SecurityManager
     static const std::string pathUserDBSign;
     static const std::string pathFaceDB;
     static const std::string pathFaceDBSign;
-   
-    int readKey();
+    
+    int readDB(std::string &dbenc, std::string &dbsign, std::string &cipherkey, std::string &iv,
+      std::string name, unsigned char *buffer, size_t bufferSize, size_t *readLen);
     int changeKey(); //unencrypt && generateKey && readKey && sign/enc
     int generateKey();
     //int getFileSize(const std::string path);
