@@ -243,6 +243,20 @@ bool CommManager::sendFace(cv::Mat &frame)
     return ret >= 0;
 }
 
+bool CommManager::sendDeleteFaceResp()
+{
+    pthread_mutex_lock(&sendMutex);
+
+    if (!sendCommand(SIGNAL_FM_RESP_FACE_DELETE))
+    {
+        pthread_mutex_unlock(&sendMutex);
+        return false;
+    }
+
+    pthread_mutex_unlock(&sendMutex);
+    return true;
+}
+
 bool CommManager::sendLoginResp(bool result_ok, int uid)
 {
     pthread_mutex_lock(&sendMutex);

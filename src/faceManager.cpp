@@ -329,6 +329,9 @@ bool FaceManager::deleteFaceDB(string userId, string faceId)
     // TODO: Serialize FaceDB
     if (!loadFaceNet())
         return false;
+
+    if (!commManager->sendDeleteFaceResp())
+        return false;
     return true;
 }
 

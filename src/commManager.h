@@ -80,6 +80,7 @@ public:
     bool sendMatchedUser(std::string username);
     bool sendRegisteredFace(cv::Mat &frame);
     bool sendLoginResp(bool result_ok, int uid);
+    bool sendDeleteFaceResp();
     void receive();
     bool do_loop(FaceManager *faceManager);
     bool sendCommand(int cmd);
