@@ -74,7 +74,7 @@ int UserAuthManager::saveUserDB() {
     cout << "totalSizeDB = " << totalSizeDB << endl;
     unsigned char writeBuf[totalSizeDB];
 
-    size_t wittenSize = 0;
+    size_t writtenSize = 0;
     for (int i=0; i<NUM_USERS; i++) {
         //cout << "sUser id " << i << ": " << sUserDB[i].userID << endl;
         //cout << "sUser pw " << i << ": " << sUserDB[i].password << endl;
@@ -86,8 +86,10 @@ int UserAuthManager::saveUserDB() {
             return -1;
         }
         sUserDB[i].serialize(buf);
-        memcpy(writeBuf+wittenSize, buf, sSize);
-        wittenSize += sSize;
+        if (totalSizeDB >= writtenSize + sSize) {
+            memcpy(writeBuf+writtenSize, buf, sSize);
+        }
+        writtenSize += sSize;
         if (buf != NULL) {
             delete buf;
         }
