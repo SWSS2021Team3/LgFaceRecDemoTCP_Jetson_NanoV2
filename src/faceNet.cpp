@@ -219,7 +219,7 @@ void FaceNetClassifier::forward(cv::Mat frame, std::vector<struct Bbox> outputBb
     }
 }
 
-void FaceNetClassifier::featureMatching(cv::Mat &image, std::vector<std::string>& matchedUser)
+void FaceNetClassifier::featureMatching(cv::Mat &image, std::vector<std::string>& matchedUsername, std::vector<std::pair<std::string, std::string>>& faceUserMap)
 {
 
     for (int i = 0; i < (m_embeddings.size() / 128); i++)
@@ -247,11 +247,21 @@ void FaceNetClassifier::featureMatching(cv::Mat &image, std::vector<std::string>
                       cv::Scalar(0, 0, 255), 2, 8, 0);
         if (minDistance <= m_knownPersonThresh)
         {
-            // cv::putText(image, m_knownFaces[winner].className, cv::Point(m_croppedFaces[i].y1+2, m_croppedFaces[i].x2-3),
-            //         cv::FONT_HERSHEY_DUPLEX, 0.1 + 2*fontScaler*4,  cv::Scalar(0,0,255,255), 1);
-            cv::putText(image, m_knownFaces[winner].className, cv::Point(m_croppedFaces[i].y1 + 2, m_croppedFaces[i].x2 - 3),
+            const std::string faceId = m_knownFaces[winner].className;
+            std::string username;
+            for (pair<string, string> & p : faceUserMap)
+            {
+                if (p.first == faceId)
+                {
+                    username = p.second;
+                    break;
+                }
+            }
+            // username = faceUserMap[faceId];
+
+            cv::putText(image, username, cv::Point(m_croppedFaces[i].y1 + 2, m_croppedFaces[i].x2 - 3),
                         cv::FONT_HERSHEY_DUPLEX, 0.1 + 2 * fontScaler * 4, cv::Scalar(0, 0, 255, 255), 1);
-            matchedUser.push_back(m_knownFaces[winner].className);
+            matchedUsername.push_back(username);
         }
         else if (minDistance > m_knownPersonThresh || winner == -1)
         {
@@ -263,14 +273,12 @@ void FaceNetClassifier::featureMatching(cv::Mat &image, std::vector<std::string>
     }
 }
 
-bool FaceNetClassifier::addNewFace(cv::Mat &image, std::vector<struct Bbox> outputBbox, cv::Mat &croppedFace, const string userId, const string faceId)
+bool FaceNetClassifier::addNewFace(cv::Mat &image, std::vector<struct Bbox> outputBbox, cv::Mat &croppedFace, const string userID, const string newFaceId)
 {
-    std::cout << "Adding new person...\nPlease make sure there is only one face in the current frame.\n"
-              << "What's your name? ";
-    string newName = faceId;
-    // std::cin >> newName;
-    std::cout << "Hi " << userId << ", you will be added to the database.\n";
-    if (forwardAddFace(image, outputBbox, newName))
+    // std::cout << "Adding new person...\nPlease make sure there is only one face in the current frame.\n"
+    //           << "What's your name? ";
+    std::cout << "Hi " << userID << ", you will be added to the database.\n";
+    if (forwardAddFace(image, outputBbox, newFaceId))
     {
         for (struct Bbox &b : outputBbox)
         {
@@ -286,7 +294,7 @@ bool FaceNetClassifier::addNewFace(cv::Mat &image, std::vector<struct Bbox> outp
             cv::resize(tempCrop, croppedFace, cv::Size(160*2, 160*3), 0, 0, cv::INTER_CUBIC);
 
             string filePath = "../imgs/";
-            filePath.append(newName);
+            filePath.append(newFaceId);
             filePath.append(".jpg");
             cv::imwrite(filePath, croppedFace);
             std::cout << "Save face : " << filePath << endl;

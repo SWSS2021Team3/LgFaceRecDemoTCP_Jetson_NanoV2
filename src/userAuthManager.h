@@ -1,6 +1,8 @@
-
+#ifndef _USERAUTHMANAGER_H
+#define _USERAUTHMANAGER_H
 #include <string>
 #include <cstring>
+#include <vector>
 #include "SecurityManager.h"
 
 #define NUM_USERS 9
@@ -112,6 +114,7 @@ public:
     ~UserAuthManager();
     bool verifyUser(std::string userid, std::string passwd);
     int getCurrentUid();
+    std::vector<struct UserData> getAllUsers();
 private:
     void resetCurrentUser();
     void loadUserDB();
@@ -122,3 +125,4 @@ private:
     struct UserData mCurrentUserData;
     SecurityManager* mSecurityManager;
 };
+#endif // _USERAUTHMANAGER_H

@@ -10,6 +10,7 @@
 #include "MSG_DB.h"
 #include "Payload.h"
 #include "SecurityManager.h"
+#include "userAuthManager.h"
 
 class FaceManager;
 
@@ -30,12 +31,12 @@ class CommandMessage
 public:
     CommandMessage(Command _c) : cmd(_c) {}
     CommandMessage(Command _c, int _uid) : cmd(_c), uid(_uid) {}
-    CommandMessage(Command _c, int _n, std::string _userId) : cmd(_c), n(_n), userId(_userId) {}
+    CommandMessage(Command _c, int _uid, int _n) : cmd(_c), uid(_uid), n(_n) {}
     CommandMessage(Command _c, std::string _userId, std::string _password)
-        : cmd(_c), userId(_userId), password(_password) {}
-    CommandMessage(Command _c, std::string _param) : cmd(_c), param(_param), userId(_param) {}
+        : cmd(_c), userID(_userId), password(_password) {}
+    CommandMessage(Command _c, std::string _param) : cmd(_c), param(_param), userID(_param) {}
     Command cmd;
-    std::string userId;
+    std::string userID;
     std::string password;
     int uid;
     std::string param;
@@ -82,7 +83,7 @@ public:
     bool sendLoginResp(bool result_ok, int uid);
     bool sendDeleteFaceResp();
     void receive();
-    bool do_loop(FaceManager *faceManager);
+    bool do_loop(FaceManager *faceManager, UserAuthManager *userAuthManager);
     bool sendCommand(int cmd);
     bool sendCommand(int cmd, std::string str);
     bool sendCommand(int cmd, std::string str1, std::string str2);

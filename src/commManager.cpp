@@ -311,12 +311,11 @@ void CommManager::disconnect()
     }
 }
 
-bool CommManager::do_loop(FaceManager *faceManager)
+bool CommManager::do_loop(FaceManager *faceManager, UserAuthManager *userAuthManager)
 {
     // loop over frames with inference
     int nbFrames = 0;
     auto globalTimeStart = chrono::steady_clock::now();
-    UserAuthManager *userAuthManager = new UserAuthManager(lSecurityManager);
 
     int status;
     pthread_t tid;
@@ -325,6 +324,8 @@ bool CommManager::do_loop(FaceManager *faceManager)
         std::cout << "thread create error" << std::endl;
         return false;
     }
+
+    std::vector<struct UserData> allUsers = userAuthManager->getAllUsers();
     long cnt = 0;
 
     bool alive = true;
@@ -358,16 +359,46 @@ bool CommManager::do_loop(FaceManager *faceManager)
             {
             case Command::GET_FACES:
             {
+                string userID = "";
+                for (struct UserData & ud : allUsers)
+                {
+                    if (ud.uid == cmdMsg.uid)
+                    {
+                        userID = ud.userID;
+                        break;
+                    }
+                }
+                if (userID == "")
+                {
+                    std::cout << "[ERR] no users. uid " << cmdMsg.uid << std::endl;
+                    break;
+                }
+
                 // TODO: get uid from payload
                 std::cout << "get-face" << std::endl;
                 // int uid = param;
-                faceManager->sendFaceImages(cmdMsg.userId);
+                faceManager->sendFaceImages(userID);
                 break;
             }
             case Command::ADD_FACE:
             {
-                string userid = cmdMsg.userId;
-                if (!faceManager->registerFace(cmdMsg.userId, cmdMsg.n))
+                // TODO: get uid/num of pictures from payload
+                string userID = "";
+                for (struct UserData & ud : allUsers)
+                {
+                    if (ud.uid == cmdMsg.uid)
+                    {
+                        userID = ud.userID;
+                        break;
+                    }
+                }
+                if (userID == "")
+                {
+                    std::cout << "[ERR] no users. uid " << cmdMsg.uid << std::endl;
+                    break;
+                }
+
+                if (!faceManager->registerFace(userID, cmdMsg.n))
                 {
                     std::cout << "[ERR] failed to Add face" << endl;
                 }
@@ -375,9 +406,9 @@ bool CommManager::do_loop(FaceManager *faceManager)
             }
             case Command::DELETE_FACE:
             {
-                string userId = cmdMsg.userId;
+                string userID = cmdMsg.userID;
                 string faceId = "LastFace"; //Delete last face
-                if(!faceManager->deleteFaceDB(cmdMsg.userId,faceId))
+                if(!faceManager->deleteFaceDB(cmdMsg.userID,faceId))
                 {
                     std::cout << "[ERR] failed to Delete face" << endl;
                 }
@@ -386,7 +417,7 @@ bool CommManager::do_loop(FaceManager *faceManager)
             case Command::LOGIN:
             {
                 std::cout << "process LOGIN" << endl;
-                string userid = cmdMsg.userId;
+                string userid = cmdMsg.userID;
                 string password = cmdMsg.password;
                 bool loginResult = userAuthManager->verifyUser(userid, password);
                 std::cout << "login result : " << loginResult << endl;
@@ -449,7 +480,6 @@ bool CommManager::do_loop(FaceManager *faceManager)
     std::cout << "Counted " << nbFrames << " frames in " << double(milliseconds) / 1000. << " seconds!"
               << " This equals " << fps << "fps.\n";
 
-    delete userAuthManager;
     return true;
 }
 
@@ -504,16 +534,20 @@ void CommManager::receive()
         switch (payload.data_id)
         {
         case SIGNAL_FM_REQ_GET_FACES:
+        {
             std::cout << "SIGNAL_FM_REQ_GET_FACES" << endl;
             pthread_mutex_lock(&recvMutex);
-            commandQueue.push(CommandMessage(Command::GET_FACES, payload.str1));
+            int uid = std::stoi(payload.str1);
+            commandQueue.push(CommandMessage(Command::GET_FACES, uid));
             pthread_mutex_unlock(&recvMutex);
             break;
+        }
         case SIGNAL_FM_REQ_FACE_ADD:
         {
             std::cout << "SIGNAL_FM_REQ_FACE_ADD" << endl;
             pthread_mutex_lock(&recvMutex);
-            commandQueue.push(CommandMessage(Command::ADD_FACE, payload.i1, payload.str1));
+            int uid = std::stoi(payload.str1);
+            commandQueue.push(CommandMessage(Command::ADD_FACE, uid, payload.i1));
             pthread_mutex_unlock(&recvMutex);
             break;
         }

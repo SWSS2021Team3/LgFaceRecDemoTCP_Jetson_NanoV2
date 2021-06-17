@@ -5,18 +5,19 @@
 #include <cstring>
 #include <string>
 
-FaceManager::FaceManager(CommManager *comm, SecurityManager *securityManager) : useCamera(true), rotate180(true), commManager(comm), lSecurityManager(securityManager)
+FaceManager::FaceManager(CommManager *comm, SecurityManager *securityManager) :
+    useCamera(true), rotate180(true),commManager(comm), lSecurityManager(securityManager), mCurrentUid(-1)
 {
     bool isCSICam = true;
     // init opencv stuff
     videoStreamer = new VideoStreamer(0, videoFrameWidth, videoFrameHeight, 60, isCSICam);
 }
 
-FaceManager::FaceManager(CommManager *comm, const char *filename, SecurityManager *securityManager) : useCamera(false), rotate180(false), commManager(comm), lSecurityManager(securityManager)
+FaceManager::FaceManager(CommManager *comm, const char *filename, SecurityManager *securityManager) :
+    useCamera(false), rotate180(false), commManager(comm), lSecurityManager(securityManager), mCurrentUid(-1)
 {
     // init opencv stuff
     videoStreamer = new VideoStreamer(filename, videoFrameWidth, videoFrameHeight);mCurrentUid = -1;
-    mCurrentUid = -1;
 }
 
 FaceManager::~FaceManager()
@@ -57,6 +58,15 @@ bool FaceManager::init()
     mtCNN = new mtcnn(videoFrameHeight, videoFrameWidth);
 
     faceDB = readFaceDB();
+
+    for (FaceData &fd : faceDB)
+    {
+        for (std::string &fi : fd.faceId)
+        {
+            faceUserMap.push_back(make_pair(fi, fd.userID));
+            // faceUserMap[fi] = fd.userID;
+        }
+    }
 
     if(loadFaceNet() == true)
         return true;
@@ -149,17 +159,17 @@ bool FaceManager::processFrame()
     faceNet->forward(frame, outputBbox);
     // auto endForward = chrono::steady_clock::now();
     // auto startFeatM = chrono::steady_clock::now();
-    vector<string> matchedUser;
+    vector<string> matchedUsername;
 
-    faceNet->featureMatching(frame, matchedUser);
+    faceNet->featureMatching(frame, matchedUsername, faceUserMap);
     // auto endFeatM = chrono::steady_clock::now();
     faceNet->resetVariables();
 
     if (!commManager->sendFrame(frame))
         return false;
-    for (std::string &u : matchedUser)
+    for (std::string &username : matchedUsername)
     {
-        commManager->sendMatchedUser(u);
+        commManager->sendMatchedUser(username);
     }
 
     outputBbox.clear();
@@ -176,7 +186,7 @@ void FaceManager::playVideo(std::string status)
         isVideoPlay = false;
 }
 
-bool FaceManager::registerFace(string userId, int numberOfImages)
+bool FaceManager::registerFace(string userID, int numberOfImages)
 {
     cv::Mat frame;
     cv::Mat croppedFace;
@@ -194,10 +204,11 @@ bool FaceManager::registerFace(string userId, int numberOfImages)
         string timestamp = to_string(std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count());
         string faceId = timestamp;
         faceId.erase(faceId.begin(),faceId.begin()+6);  //openCV vulnerbility (fileName should be ascii)
+        faceId = userID + "_" + faceId;
 
         for(int i=0; i<faceDB.size(); i++)
         {
-            if(!strncmp(faceDB[i].userId.c_str(), userId.c_str(), userId.size()))
+            if(!strncmp(faceDB[i].userID.c_str(), userID.c_str(), userID.size()))
             {
                 int size = faceDB[i].faceId.size();
                 faceId += to_string(size);
@@ -227,7 +238,7 @@ bool FaceManager::registerFace(string userId, int numberOfImages)
             //     return false;
 
             //cv::imshow("VideoSource", frame);
-            faceDetected = faceNet->addNewFace(frame, outputBbox, croppedFace, userId, faceId);
+            faceDetected = faceNet->addNewFace(frame, outputBbox, croppedFace, userID, faceId);
             cnt++;
         }
 
@@ -250,7 +261,7 @@ bool FaceManager::registerFace(string userId, int numberOfImages)
         croppedFace.release();
 
         std::cout << "[FaceManager] faceId Created with userId_timestamp = " << faceId << std::endl;
-        if (!addFaceDB(userId,faceId))
+        if (!addFaceDB(userID,faceId))
             return false;
 
         if (!loadFaceNet())
@@ -261,10 +272,10 @@ bool FaceManager::registerFace(string userId, int numberOfImages)
     return true;
 }
 
-void FaceManager::sendFaceImages(string userId)
+void FaceManager::sendFaceImages(string userID)
 {
-    std::cout << "[FaceManager] sendFaceImages : " << userId << endl;
-    vector<string> face_list = getFaceListFromDB(userId);   //Read facelist from FaceDB
+    std::cout << "[FaceManager] sendFaceImages : " << userID << endl;
+    vector<string> face_list = getFaceListFromDB(userID);   //Read facelist from FaceDB
     string imagepath = "../imgs";
     
     std::vector<struct Paths> paths;
@@ -305,20 +316,20 @@ void FaceManager::changeVideoSourceLive()
     rotate180 = true;
 }
 
-bool FaceManager::deleteFaceDB(string userId, string faceId)
+bool FaceManager::deleteFaceDB(string userID, string faceId)
 {
-    std::cout << "[FaceManager] deleteFace: " << userId << " / " << faceId << endl;
+    std::cout << "[FaceManager] deleteFace: " << userID << " / " << faceId << endl;
     for(int i=0; i<faceDB.size(); i++)
     {
-        if(!strncmp(faceDB[i].userId.c_str(), userId.c_str(), userId.size()))
+        if(!strncmp(faceDB[i].userID.c_str(), userID.c_str(), userID.size()))
         {
             if(faceDB[i].faceId.size() <= 0)
                 return false;
-            std::cout << "[FaceManager] Find userId : " << userId << " Delete last face" << endl;
+            std::cout << "[FaceManager] Find userID : " << userID << " Delete last face" << endl;
             faceDB[i].faceId.pop_back();
             /*for(int j=0; j<faceDB[i].faceId.size(); j++)
             {
-                std::cout << "[FaceManager] Find userId : " << userId << " faceId : " << faceId << " Delete." << endl;
+                std::cout << "[FaceManager] Find userID : " << userID << " faceId : " << faceId << " Delete." << endl;
                 faceDB[i].faceId.erase(faceDB[i].faceId.begin()+j);
             }*/
         }
@@ -355,30 +366,32 @@ bool FaceManager::saveFaceDB()
 	return ret;
 }
 
-bool FaceManager::addFaceDB(string userId, string faceId)
+bool FaceManager::addFaceDB(string userID, string faceId)
 {
-    std::cout << "[FaceManager] addFaceDB: " << userId << " / " << faceId << endl;
+    std::cout << "[FaceManager] addFaceDB: " << userID << " / " << faceId << endl;
     bool user_found = false;
     for(int i=0; i<faceDB.size(); i++)
     {
-        if(!strncmp(faceDB[i].userId.c_str(), userId.c_str(), userId.size()))
+        if(!strncmp(faceDB[i].userID.c_str(), userID.c_str(), userID.size()))
         {
-            std::cout << "[FaceManager] Find userId : " << userId << " Add : " << faceId << endl;
+            std::cout << "[FaceManager] Find userID : " << userID << " Add : " << faceId << endl;
             faceDB[i].faceId.push_back(faceId);
+            // faceUserMap.insert(faceId, faceDB[i].userID);            
+            faceUserMap.push_back(make_pair(faceId, faceDB[i].userID));
             user_found = true;
             break;
         }
     }
     if(!user_found)
     {
-        std::cout << "[FaceManager] add New User: " << userId << endl;
+        std::cout << "[FaceManager] add New User: " << userID << endl;
         FaceData fd;
-        fd.userId = userId;
+        fd.userID = userID;
         fd.faceId.push_back(faceId);
         faceDB.push_back(fd);
         for(int i=0; i<faceDB.size(); i++)
         {
-            std::cout << "[FaceManager] faceDB.userId " << faceDB[i].userId << endl;
+            std::cout << "[FaceManager] faceDB.userID " << faceDB[i].userID << endl;
             for(int j=0; j<faceDB[i].faceId.size(); j++)
             {
                 std::cout << "[FaceManager] faceDB.faceId " << faceDB[i].faceId[j] << endl;
@@ -394,26 +407,26 @@ bool FaceManager::addFaceDB(string userId, string faceId)
     return true;
 }
 
-bool FaceManager::findUserFromDB(string userId)
+bool FaceManager::findUserFromDB(string userID)
 {
-    std::cout << "[FaceManager] findUserFromDB: " << userId << endl;
+    std::cout << "[FaceManager] findUserFromDB: " << userID << endl;
 
     return true;
 }
 
-void FaceManager::setCurrentUid(string userId) {
-    int uid = stoi(userId);
+void FaceManager::setCurrentUid(string userID) {
+    int uid = stoi(userID);
     if (uid >= 0) {
         mCurrentUid = uid;
     }
 }
-vector<string> FaceManager::getFaceListFromDB(string userId)
+vector<string> FaceManager::getFaceListFromDB(string userID)
 {
     vector<string> ret;
     // vector<FaceData> v_fd = readFaceDB();
     for(int i=0; i<faceDB.size(); i++)
     {
-        if(!strncmp(faceDB[i].userId.c_str(), userId.c_str(), userId.size()))
+        if(!strncmp(faceDB[i].userID.c_str(), userID.c_str(), userID.size()))
         {
             std::cout << "[FaceManager] Found Face List" << endl;
             ret = faceDB[i].faceId;

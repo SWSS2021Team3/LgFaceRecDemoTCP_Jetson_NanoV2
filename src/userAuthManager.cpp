@@ -176,3 +176,16 @@ int UserAuthManager::getCurrentUid() {
     return mCurrentUserData.uid;
 }
 
+std::vector<struct UserData> UserAuthManager::getAllUsers()
+{
+    vector<struct UserData> allUsers;
+
+    for (int i=0; i<NUM_USERS; i++) {
+        allUsers.emplace_back();
+        struct UserData& user = allUsers.back();
+
+        user.uid = sUserDB[i].uid;
+        user.userID = sUserDB[i].userID;
+    }
+    return allUsers;
+}

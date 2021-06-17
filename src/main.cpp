@@ -3,6 +3,7 @@
 #include "commManager.h"
 #include "faceManager.h"
 #include "SecurityManager.h"
+#include "userAuthManager.h"
 
 // Uncomment to print timings in milliseconds
 #define LOG_TIMES
@@ -37,6 +38,7 @@ int main(int argc, char *argv[])
   CommManager *commManager;
   FaceManager *faceManager;
   SecurityManager *secuManager;
+  UserAuthManager *userAuthManager;
 
   bool UseCamera = false;
 
@@ -98,6 +100,7 @@ int main(int argc, char *argv[])
     std::cerr << "Program exit. check facenet and mtcnn model files." << std::endl;
     exit(-1);
   }
+  userAuthManager = new UserAuthManager(secuManager);
 
   int portNumber = atoi(argv[1]);
   int portNumberSecured = portNumber + 10;//6000;
@@ -122,7 +125,7 @@ int main(int argc, char *argv[])
 
     faceManager->start();
 
-    inLoop = commManager->do_loop(faceManager);
+    inLoop = commManager->do_loop(faceManager, userAuthManager);
 
     faceManager->stop();
 
@@ -131,6 +134,7 @@ int main(int argc, char *argv[])
 
   delete faceManager;
   delete commManager;
+  delete userAuthManager;
 
   return 0;
 }

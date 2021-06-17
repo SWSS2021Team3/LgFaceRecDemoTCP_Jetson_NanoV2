@@ -7,6 +7,7 @@
 #include <fstream>
 #include <cassert>
 #include <numeric>
+#include <map>
 #include <dirent.h>
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
@@ -41,8 +42,8 @@ public:
     void doInference(float *inputData, float *output);
     bool forwardAddFace(cv::Mat image, std::vector<struct Bbox> outputBbox, const string className);
     void forward(cv::Mat image, std::vector<struct Bbox> outputBbox);
-    void featureMatching(cv::Mat &image, std::vector<std::string>& matchedUser);
-    bool addNewFace(cv::Mat &image, std::vector<struct Bbox> outputBbox, cv::Mat &croppedFace, const string userId, const string faceId);
+    void featureMatching(cv::Mat &image, std::vector<std::string>& matchedUsername, std::vector<pair<std::string, std::string>>& faceUserMap);
+    bool addNewFace(cv::Mat &image, std::vector<struct Bbox> outputBbox, cv::Mat &croppedFace, const string userID, const string newFaceId);
     void resetVariables();
 
 private:
