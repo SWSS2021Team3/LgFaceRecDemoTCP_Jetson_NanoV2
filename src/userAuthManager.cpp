@@ -34,6 +34,10 @@ void UserAuthManager::loadUserDB() {
 
     readSize = mSecurityManager->getSizeUserDB();
     unsigned char* readData = new unsigned char[readSize];
+    if (readData == NULL) {
+        cout << "failed to allocate memory" << endl;
+        return;
+    }
 
     int ret = mSecurityManager->readUserDB(readData, readSize, &readLen);
     if (ret < 0) {
@@ -48,6 +52,10 @@ void UserAuthManager::loadUserDB() {
         //cout << "()()()()userID: " << sUserDB[i].userID << endl;
         //cout << "()()()()passwd: " << sUserDB[i].password << endl;
         //cout << "()()()()uid: " << sUserDB[i].uid << endl;
+    }
+
+    if (readData != NULL) {
+        delete readData;
     }
 }
 
@@ -73,9 +81,16 @@ int UserAuthManager::saveUserDB() {
         //cout << "sUser uid " << i << ": " << sUserDB[i].uid << endl;
         size_t sSize = sUserDB[i].serialize_size();
         char* buf = new char[sSize];
+        if (buf == NULL) {
+            cout << "failed to allocate buffer" << endl;
+            return -1;
+        }
         sUserDB[i].serialize(buf);
         memcpy(writeBuf+wittenSize, buf, sSize);
         wittenSize += sSize;
+        if (buf != NULL) {
+            delete buf;
+        }
     }
 
     int ret = mSecurityManager->writeUserDB(writeBuf, totalSizeDB, &writeLen);
@@ -122,12 +137,12 @@ bool UserAuthManager::verifyUser(string userid, string passwd) {
         cout << "security manager is null" << endl;
         return false;
     }
-    size_t iLen = strlen(userid.c_str());
+    size_t iLen = userid.length();
 	if (iLen > LIMIT_ID_LENGTH) {
 		cout << "invalid id length" << endl;
 		return false;
 	}
-    size_t pLen = strlen(passwd.c_str());
+    size_t pLen = passwd.length();
 	if (pLen > LIMIT_PW_LENGTH) {
 		cout << "invalid password legnth" << endl;
 		return false;
@@ -145,9 +160,9 @@ bool UserAuthManager::verifyUser(string userid, string passwd) {
     unsigned char hashedPW[LIMIT_PW_LENGTH] = {0,};
     size_t outLen;
     //cout << ">>>> pass : " << (unsigned char*)passwd.c_str() << endl;
-    size_t passLen = strlen(passwd.c_str());
+    size_t passLen = passwd.length();
 
-    mSecurityManager->makeHashStr((unsigned char*)passwd.c_str(), strlen(passwd.c_str()), hashedPW, &outLen);
+    mSecurityManager->makeHashStr((unsigned char*)passwd.c_str(), passwd.length(), hashedPW, &outLen);
     //cout << "hashed pw = " << hashedPW << endl;
     if (mIsFound) {
 		return !strncasecmp((const char*)hashedPW, mCurrentUserData.password.c_str(), pLen);
