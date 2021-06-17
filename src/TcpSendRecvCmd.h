@@ -11,4 +11,7 @@ bool TcpRecvCommand(TTcpConnectedPort * TcpConnectedPort, Payload* payload);
 int TcpSendObject(TTcpConnectedPort* TcpConnectedPort, Serializable* s);
 bool TcpRecvObject(TTcpConnectedPort* TcpConnectedPort, Serializable* s);
 
+int TcpSendStringVector(TTcpConnectedPort* TcpConnectedPort, vector<string>& s);
+bool TcpRecvStringVector(TTcpConnectedPort* TcpConnectedPort, vector<string>& s);
+
 #endif // _TCPSENDRECVCMD_H

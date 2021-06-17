@@ -295,6 +295,31 @@ bool CommManager::sendLoginResp(bool result_ok, int uid)
     return true;
 }
 
+bool CommManager::sendStudentList(vector<struct UserData>& allUsers)
+{
+    vector<string> userIDs;
+    for (struct UserData& user : allUsers)
+    {
+        userIDs.push_back(user.userID);
+    }
+
+    pthread_mutex_lock(&sendMutex);
+    if (!sendCommand(SIGNAL_FM_RESP_STUDENT_LIST))
+    {
+        pthread_mutex_unlock(&sendMutex);
+        return false;
+    }
+
+    if (TcpSendStringVector(TcpConnectedPort, userIDs) < 0)
+    {
+        pthread_mutex_unlock(&sendMutex);
+        return false;
+    }
+
+    pthread_mutex_unlock(&sendMutex);
+    return true;
+}
+
 void CommManager::disconnect()
 {
     if (TcpConnectedPort != NULL)
@@ -450,6 +475,14 @@ bool CommManager::do_loop(FaceManager *faceManager, UserAuthManager *userAuthMan
                 faceManager->changeVideoSourceLive();
                 break;
             }
+            case Command::GET_STUDENT_LIST:
+            {
+                std::cout << "get student list" << std::endl;
+                vector<struct UserData> allUsers = userAuthManager->getAllUsers();
+                
+                sendStudentList(allUsers);
+                break;
+            }
             case Command::DISCONNECT:
             {
                 std::cout << "disconnect" << std::endl;
@@ -602,6 +635,14 @@ void CommManager::receive()
             std::cout << "SIGNAL_FM_REQ_VIDEO_LIVE" << std::endl;
             pthread_mutex_lock(&recvMutex);
             commandQueue.push(CommandMessage(Command::CHANGE_VIDEO_LIVE));
+            pthread_mutex_unlock(&recvMutex);
+            break;
+        }
+        case SIGNAL_FM_REQ_STUDENT_LIST:
+        {
+            std::cout << "SIGNAL_FM_REQ_STUDENT_LIST" << std::endl;
+            pthread_mutex_lock(&recvMutex);
+            commandQueue.push(CommandMessage(Command::GET_STUDENT_LIST));
             pthread_mutex_unlock(&recvMutex);
             break;
         }

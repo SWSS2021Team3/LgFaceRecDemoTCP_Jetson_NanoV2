@@ -103,3 +103,48 @@ bool TcpRecvObject(TTcpConnectedPort* TcpConnectedPort, Serializable* s)
     delete[] buf;
     return false;
 }
+
+
+int TcpSendStringVector(TTcpConnectedPort* TcpConnectedPort, vector<string>& s)
+{
+    size_t s_size = SerializableP<vector<string>>::serialize_size(s);
+
+    unsigned int payloadSize = htonl(static_cast<u_long>(s_size));
+    if (WriteDataTcp(TcpConnectedPort, reinterpret_cast<unsigned char*>(&payloadSize), sizeof(payloadSize)) != sizeof(payloadSize)) {
+        return(-1);
+    }
+    char* buf = new (std::nothrow) char[s_size];
+    if (buf == NULL)
+        return false;
+    SerializableP<vector<string>>::serialize(buf, s);
+    int ret = static_cast<int>(WriteDataTcp(TcpConnectedPort, reinterpret_cast<unsigned char*>(buf), s_size));
+    delete[] buf;
+    return ret;
+}
+
+bool TcpRecvStringVector(TTcpConnectedPort* TcpConnectedPort, vector<string>& s)
+{
+    // if (s == NULL)
+    //     return false;
+
+    unsigned int payloadSize;
+
+    if (ReadDataTcp(TcpConnectedPort, reinterpret_cast<unsigned char*>(&payloadSize), sizeof(payloadSize)) != sizeof(payloadSize)) {
+        return(false);
+    }
+
+    size_t s_size = ntohl(payloadSize); // convert image size to host format
+
+    char* buf = new (std::nothrow) char[s_size];
+    if (buf == NULL)
+        return false;
+
+    if ((ReadDataTcp(TcpConnectedPort, reinterpret_cast<unsigned char*>(buf), s_size)) == s_size) {
+        SerializableP<vector<string>>::deserialize(buf, s);
+
+        delete[] buf;
+        return true;
+    }
+    delete[] buf;
+    return false;
+}

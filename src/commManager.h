@@ -23,7 +23,8 @@ enum class Command
     VIDEO,
     DISCONNECT,
     CHANGE_VIDEO_SRC,
-    CHANGE_VIDEO_LIVE
+    CHANGE_VIDEO_LIVE,
+    GET_STUDENT_LIST
 };
 
 class CommandMessage
@@ -82,6 +83,7 @@ public:
     bool sendRegisteredFace(cv::Mat &frame);
     bool sendLoginResp(bool result_ok, int uid);
     bool sendDeleteFaceResp();
+    bool sendStudentList(vector<struct UserData>& allUsers);
     void receive();
     bool do_loop(FaceManager *faceManager, UserAuthManager *userAuthManager);
     bool sendCommand(int cmd);
