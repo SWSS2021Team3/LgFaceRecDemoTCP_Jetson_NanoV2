@@ -69,8 +69,10 @@ public:
     static size_t serialize_size(std::vector<T> vs)
     {
         size_t s = 0;
-        for (T& v : vs)
+        for (T &v : vs)
+        {
             s += SerializableP<T>::serialize_size(v);
+        }
         return sizeof(size_t) + s;
     }
 
@@ -79,7 +81,7 @@ public:
         size_t length = vs.size();
         memcpy(target, &length, sizeof(size_t));
         target += sizeof(size_t);
-        for (T& v: vs)
+        for (T &v : vs)
         {
             target = SerializableP<T>::serialize(target, v);
         }
@@ -95,10 +97,10 @@ public:
         for (int i = 0; i < length; i++)
         {
             vs.emplace_back();
-            T& v = vs.back();
+            T &v = vs.back();
             src = SerializableP<T>::deserialize(src, v);
         }
-        return src + serialize_size(vs);
+        return src;
     }
 };
 
