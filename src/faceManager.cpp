@@ -272,6 +272,8 @@ bool FaceManager::registerFace(string userID, int numberOfImages)
     return true;
 }
 
+int getFileSize(const std::string path);
+
 void FaceManager::sendFaceImages(string userID)
 {
     std::cout << "[FaceManager] sendFaceImages : " << userID << endl;
@@ -286,6 +288,11 @@ void FaceManager::sendFaceImages(string userID)
     {
         string absPath = imagepath + "/" + face_list[i] + ".jpg";
         std::cout << "[FaceManager] loading " << i << " " << absPath << std::endl;
+        if (getFileSize(absPath) == 0)
+        {
+            std::cout << "[FaceManager] empty file. skip " << std::endl;
+            continue;
+        }
         loadInputImage(absPath, image, videoFrameWidth, videoFrameHeight);
         commManager->sendRegisteredFace(image);
     }
